@@ -1,0 +1,22 @@
+services:
+  telegram-ai-bot:
+    image: "${REGISTRY_FQDN}/${IMAGE_NAME}:${IMAGE_TAG}"
+    restart: "unless-stopped"
+    container_name: chat-bot-ai
+    volumes:
+      - ${MODELS_DIR}:/root/.cache/huggingface
+      - ${APP_DATA_DIR}:/app/data
+    environment:
+      - TELEGRAM_BOT_TOKEN
+      - HELP_MESSAGE
+      - INITIAL_PROMPT
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - NVIDIA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # or device_ids: ['0', '3']
+              capabilities: [gpu]
+#    entrypoint: python3 main.py
