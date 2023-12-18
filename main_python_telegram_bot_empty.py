@@ -18,7 +18,7 @@ from models.stabilityai_stable_diffusion_x4_upscaler import stable_diffusion_x4_
 from models.TheBloke_Llama_2_13B_Chat_GPTQ import Llama_2_13B_chat_GPTQ
 from models.meta_llama_Llama_2_13b_chat_hf import Llama_2_13b_chat_hf
 from models.philschmid_bart_large_cnn_samsum import bart_large_cnn_samsum
-from models.TheBloke_Mistral_7B_OpenOrca_GPTQ import Mistral_7B_OpenOrca_GPTQ
+from models.Mistral_7B_Instruct_v0_2_GPTQ import Mistral_7B_OpenOrca_GPTQ
 
 # -----------------------------------------------------------------------------------------
 # Command handlers
