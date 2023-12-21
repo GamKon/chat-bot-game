@@ -13,7 +13,18 @@ actions:
     command: python3 main.py
     load_secrets: true
     description: Run the app
+  create-tables:
+    command: python3 ./db/init_db.py
+    load_secrets: true
+    description: Create database tables
 
+  # alembic:
+  #   command: alembic upgrade head
+    #alembic revision -m "create account table2"
+    #alembic upgrade head
+    #alembic revision --autogenerate -m "Add messages model"
+    # load_secrets: true
+    # description: Create alembic migration
 # Docker
   build:
     command: docker build -t "$REGISTRY_FQDN/$IMAGE_NAME:$IMAGE_TAG" .
@@ -65,9 +76,12 @@ actions:
     command: ops start && ops logs
     load_secrets: true
   execute:
-    command: docker compose exec telegram-ai-bot
+    command: docker compose exec ${IMAGE_NAME}
   shell:
-    command: docker compose exec telegram-ai-bot /bin/bash
+    command: docker compose exec ${IMAGE_NAME} /bin/bash
+    load_secrets: true
+  shell-db:
+    command: docker compose exec db /bin/bash
     load_secrets: true
   prune:
     command: docker system prune -f --all

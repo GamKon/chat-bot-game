@@ -1,7 +1,9 @@
 # App ignore
 chat_history
 aiogram
-
+alembic
+old
+alembic.ini
 # Environment variable files
 *.env
 

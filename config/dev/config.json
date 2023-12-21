@@ -1,6 +1,8 @@
 {
     "environment": {
-        "TF_CPP_MIN_LOG_LEVEL": "1",
+        "MODEL_NAME": "TheBloke/Mistral-7B-Instruct-v0.2-GPTQ",
+        "MODEL_DESCRIPTION": "Mistral-7B-Instruct",
+        "TF_CPP_MIN_LOG_LEVEL": "3",
         "IMAGE_NAME": "gamkon61/chat-bot-ai",
         "IMAGE_TAG": "latest",
         "REGISTRY_FQDN": "docker.io",

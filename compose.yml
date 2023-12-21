@@ -1,22 +1,48 @@
 services:
-  telegram-ai-bot:
-    image: "${REGISTRY_FQDN}/${IMAGE_NAME}:${IMAGE_TAG}"
-    restart: "unless-stopped"
-    container_name: chat-bot-ai
-    volumes:
-      - ${MODELS_DIR}:/root/.cache/huggingface
-      - ${APP_DATA_DIR}:/app/data
+#   chat-bot-ai:
+#     image: "${REGISTRY_FQDN}/${IMAGE_NAME}:${IMAGE_TAG}"
+#     restart: "unless-stopped"
+#     container_name: chat-bot-ai
+#     volumes:
+#       - ${MODELS_DIR}:/root/.cache/huggingface
+#       - ${APP_DATA_DIR}:/app/data
+#     environment:
+#       - TELEGRAM_BOT_TOKEN
+#       - HELP_MESSAGE
+#       - INITIAL_PROMPT
+#       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+#       - NVIDIA_VISIBLE_DEVICES=all
+#     deploy:
+#       resources:
+#         reservations:
+#           devices:
+#             - driver: nvidia
+#               count: all # or device_ids: ['0', '3']
+#               capabilities: [gpu]
+# #    entrypoint: python3 main.py
+# #     networks:
+# #       - db
+#     depends_on:
+#       - db
+
+  db:
+    container_name: postgres-ai
+    image: postgres:16-alpine
+#    platform: linux/amd64
+    restart: unless-stopped
+#    command: postgres -c 'max_connections=100'
+    ports:
+      - 5432:5432
     environment:
-      - TELEGRAM_BOT_TOKEN
-      - HELP_MESSAGE
-      - INITIAL_PROMPT
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - NVIDIA_VISIBLE_DEVICES=all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all # or device_ids: ['0', '3']
-              capabilities: [gpu]
-#    entrypoint: python3 main.py
+      POSTGRES_USERNAME:  ${POSTGRES_USER}
+      POSTGRES_PASSWORD:  ${POSTGRES_PASSWORD}
+      POSTGRES_DB:        ${POSTGRES_DB}
+    volumes:
+      - ${APP_DATA_DIR}/database:/var/lib/postgresql/data
+    # networks:
+    #   - db
+    # healthcheck:
+    #   test: ['CMD', 'nc', '-zw5', 'localhost', "${WHD_DB_PORT}"]
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 5s
