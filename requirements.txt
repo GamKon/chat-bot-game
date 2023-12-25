@@ -1,1 +1,16 @@
 aiogram
+sqlalchemy
+asyncpg
+torch
+accelerate
+auto-gptq
+optimum
+diffusers
+accelerate
+autoawq
+openai
+# einops # for chat_phi_1_5
+# sacremoses # to use XLMTokenizer
+# emoji
+# bitsandbytes
+# scipy

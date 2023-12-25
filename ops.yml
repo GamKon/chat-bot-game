@@ -32,7 +32,7 @@ actions:
     description: Build Docker image
   build-start-log:
     alias: bsl
-    command: ops build && ops start && ops logs
+    command: ops build && ops start && ops logs chat-bot-ai
   build-start-shell:
     alias: bss
     command: ops build && ops start && ops shell
@@ -78,7 +78,8 @@ actions:
   execute:
     command: docker compose exec ${IMAGE_NAME}
   shell:
-    command: docker compose exec ${IMAGE_NAME} /bin/bash
+    command: docker compose exec chat-bot-ai /bin/bash
+    #${IMAGE_NAME} /bin/bash
     load_secrets: true
   shell-db:
     command: docker compose exec db /bin/bash
@@ -117,4 +118,4 @@ options:
   exec:
     load_secrets: true
   environment:
-    LD_LIBRARY_PATH: /home/gamkon/.local/lib/python3.10/site-packages/nvidia/cudnn/lib:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt_libs/:/home/gamkon/.local/lib/python3.10/site-packages/nvidia/cuda_runtime/lib:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt_bindings
+    LD_LIBRARY_PATH: /usr/lib/wsl/lib/:/home/gamkon/.local/lib/python3.10/site-packages/nvidia/cudnn/lib:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt_libs/:/home/gamkon/.local/lib/python3.10/site-packages/nvidia/cuda_runtime/lib:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt_bindings

@@ -17,3 +17,6 @@ class UIStates(StatesGroup):
     sys_ai_model      = State()
     db_error          = State()
     waiting_ai_answer = State()
+    edit_system_prompt = State()
+    edit_system_prompt_confirm = State()
+    # sys_template_format = State()

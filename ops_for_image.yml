@@ -13,6 +13,10 @@ actions:
     command: python3 main.py
     load_secrets: true
     description: Run the app
+  create-tables:
+    command: python3 ./db/init_db.py
+    load_secrets: true
+    description: Create database tables
   nv:
     command: nvtop
     description: Run monitor for GPU

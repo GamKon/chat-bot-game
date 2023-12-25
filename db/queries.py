@@ -1,6 +1,6 @@
 # from os import getenv
 # import asyncpg
-# from db.db_schema import User, Messages
+# from db.db_schema import User, Message
 # from sqlalchemy.orm import sessionmaker
 #from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 #from db.init_db import db_url
@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.sql.expression import Delete, Update
 from sqlalchemy.dialects.postgresql import insert
 
-from db.init_db import engine, User, Messages, Prompt, Model
+from db.init_db import engine, User, Message, Prompt, Model
 #engine = create_async_engine(db_url, echo=True, future=True)
 # # async_sessionmaker: a factory for new AsyncSession objects.
 # # expire_on_commit - don't expire objects after transaction commit
@@ -18,12 +18,18 @@ from db.init_db import engine, User, Messages, Prompt, Model
 # select prompt and model for user
 async def select_user_settings(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(Prompt.name, Model.description).where(User.prompt_id == Prompt.id, User.model_id == Model.id, User.user_id == user_id))
+        result = await conn.execute(select(Prompt.name,
+                                           Model.description,
+                                           Prompt.prompt).where(
+                                               Prompt.user_id   == user_id,
+                                               Prompt.id        == User.prompt_id,
+                                               Model.model_id   == User.model_id
+                                               ))
     return result.first()
 
 ##########################################################################################################################################################
 # Add user
-async def add_user(user_id, first_name, last_name, username, language, prompt_id, model_id):
+async def add_user(user_id, first_name, last_name, username, language, model_id):
     async with engine.begin() as conn:
         await conn.execute(insert(User).values(
                 user_id     = user_id,
@@ -31,8 +37,9 @@ async def add_user(user_id, first_name, last_name, username, language, prompt_id
                 last_name   = last_name,
                 username    = username,
                 language    = language,
-                prompt_id   = prompt_id,
+#                prompt_id   = prompt_id,
                 model_id    = model_id
+#                prompt_format = prompt_format
             ).on_conflict_do_nothing(index_elements=['user_id']))
 ##########################################################################################################################################################
 # Select 1 user
@@ -44,28 +51,32 @@ async def show_user(user_id):
 # Show user status
 async def user_status(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(User.user_id,
-                                           User.username,
-                                           User.first_name,
-                                           User.last_name,
-                                           User.language,
-                                           Model.description,
-                                           Prompt.prompt
-                                    ).where(User.user_id == user_id,
-                                            User.prompt_id == Prompt.id,
-                                            User.model_id == Model.id))
+        result = await conn.execute(select(
+            User.user_id,
+            User.username,
+            User.first_name,
+            User.last_name,
+            User.language,
+            Model.description,
+            Prompt.prompt).where(
+                User.user_id == user_id,
+                Prompt.id == User.prompt_id,
+                Prompt.user_id == User.user_id,
+### !!!
+#                User.prompt_id == Prompt.user_id,
+                User.model_id == Model.model_id))
     return result.first()
 ##########################################################################################################################################################
 # Get all user messages
 async def select_user_chat_history(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(Messages.role, Messages.content).where(Messages.user_id == user_id).order_by(Messages.id.asc()))
+        result = await conn.execute(select(Message.role, Message.content).where(Message.user_id == user_id).order_by(Message.id.asc()))
         return result.all()
 ##########################################################################################################################################################
 # Add user message
 async def add_message(user_id, role, content):
     async with engine.begin() as conn:
-        await conn.execute(insert(Messages).values(
+        await conn.execute(insert(Message).values(
                 user_id     = user_id,
                 role        = role,
                 content     = content,
@@ -74,51 +85,46 @@ async def add_message(user_id, role, content):
 # Delete last user message
 async def delete_last_message(user_id):
     async with engine.begin() as conn:
-        await conn.execute(Delete(Messages).where(Messages.user_id == user_id).order_by(Messages.id.desc()).first())
+        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id).order_by(Message.id.desc()))
+        await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
 ##########################################################################################################################################################
 # Delete all user messages
 async def delete_all_messages(user_id):
     async with engine.begin() as conn:
-        await conn.execute(Delete(Messages).where(Messages.user_id == user_id))
+        await conn.execute(Delete(Message).where(Message.user_id == user_id))
 ##########################################################################################################################################################
-# Delete last two user messages
+# Delete last two eser messages
 async def delete_last_two_messages(user_id):
     async with engine.begin() as conn:
-        last_message = await conn.execute(select(Messages).where(Messages.user_id == user_id).order_by(Messages.id.desc()).first())
-        await conn.execute(Delete(last_message))
-
-
-async def delete_row(session, model, primary_key):
-    # Get the query object for the row you want to delete
-    query = session.query(Messages)
-    row_to_delete = await query.filter(Messages.id == primary_key).gino.first()
-
-#     if row_to_delete:
-#         # Delete the row
-#         await row_to_delete.delete()
-#         await session.commit()
-#     else:
-#         print("Row not found")
-
-
+        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id).order_by(Message.id.desc()))
+        await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
+        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id).order_by(Message.id.desc()))
+        await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
 
 ##########################################################################################################################################################
 # Select current initial prompt
 async def select_system_prompt(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(Prompt.prompt).where(Prompt.prompt_id == User.prompt_id, User.user_id == user_id))
+        result = await conn.execute(select(Prompt.prompt, Prompt.user_role_name, Prompt.ai_role_name, Prompt.id).where(Prompt.id == User.prompt_id, User.user_id == user_id))
     return result.first()
 ##########################################################################################################################################################
 # Select all prompts
-async def select_all_system_prompts():
+async def select_all_system_prompts(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(Prompt.name, Prompt.prompt, Prompt.prompt_id))
+        result = await conn.execute(select(Prompt.name, Prompt.prompt, Prompt.id).where(Prompt.user_id == user_id))
     return result.all()
 ##########################################################################################################################################################
 # update_user_ai_persona
 async def update_user_ai_persona(user_id, prompt_id):
     async with engine.begin() as conn:
         await conn.execute(Update(User).where(User.user_id == user_id).values(prompt_id = prompt_id))
+##########################################################################################################################################################
+# update_user_ai_persona
+async def edit_system_prompt(user_id, prompt_text):
+    new_prompt = str(prompt_text)
+    if len(new_prompt) < 1024:
+        async with engine.begin() as conn:
+            await conn.execute(Update(Prompt).where(Prompt.id == User.prompt_id, User.user_id == user_id).values(prompt = str(prompt_text)))
 
 ##########################################################################################################################################################
 # Select all models
@@ -133,9 +139,76 @@ async def update_user_llm_model(user_id, model_id):
 ##########################################################################################################################################################
 async def select_user_llm_model(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(Model.name).where(Model.model_id == User.model_id))#, User.user_id == user_id))
+        result = await conn.execute(select(Model.name, Model.model_id, Model.prompt_format).where(User.user_id == user_id, Model.model_id == User.model_id))#, User.user_id == user_id))
     return result.first()
 ##########################################################################################################################################################
+
+
+##########################################################################################################################################################
+# Add default_user prompts
+##########################################################################################################################################################
+async def add_default_user_prompts(user_id):
+    async with engine.begin() as conn:
+
+        default_prompts = await conn.execute(select(Prompt.id, Prompt.name, Prompt.prompt, Prompt.user_role_name, Prompt.ai_role_name).where(Prompt.user_id == None))
+        print("default_prompts")                                                                                                                                           #.prompt_id < 10))
+        default_prompts = default_prompts.all()
+
+        for prompt in default_prompts:
+            print(prompt[1])
+            await conn.execute(insert(Prompt).values(
+                    user_id         = user_id,
+                    name            = prompt[1],
+                    prompt          = prompt[2],
+                    user_role_name  = prompt[3],
+                    ai_role_name    = prompt[4]
+                ))#.on_conflict_do_nothing(index_elements=['prompt_id']))
+        print("111")
+        personal_prompts = await conn.execute(select(Prompt.id).where(Prompt.user_id == user_id).order_by(Prompt.id.asc()))
+        print("222")
+        personal_prompts = personal_prompts.all()
+        print("333")
+        # Assign first personal prompt to user
+        print(personal_prompts)
+        try:
+            await conn.execute(Update(User).where(User.user_id == user_id).values(prompt_id = personal_prompts[0][0]))
+        except:
+            print("User has no prompts")
+        print("444")
+
+
+        # for prompt in default_prompts:
+        #     await conn.execute(insert(Prompt).values(
+        #             user_id         = user_id,
+        #             name            = prompt[2],
+        #             prompt          = prompt[3],
+        #             user_role_name  = prompt[4],
+        #             ai_role_name    = prompt[5]
+        #         ).on_conflict_do_nothing(index_elements=['prompt_id']))
+
+# prompt_id   = prompt_id
+# user_id     = user_id
+        # await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
+
+
+
+
+
+        # await conn.execute(insert(Prompt).values(
+        #         user_id     = user_id,
+        #         prompt_id
+        #         name
+        #         prompt
+        #         user_role_name
+        #     ).on_conflict_do_nothing(index_elements=['prompt_id']))
+
+
+# Deprecated
+# async def update_user_template_format(user_id, prompt_format):
+#     async with engine.begin() as conn:
+#         await conn.execute(Update(User).where(User.user_id == user_id).values(prompt_format = prompt_format))
+##########################################################################################################################################################
+
 
 # async save_tutorial(tutorial: Tutorial) -> Tutorial:
 #     async with get_session() as session:
@@ -176,43 +249,43 @@ async def select_user_llm_model(user_id):
 # async def delete_user_chat_history(user_id):
 #     async with async_session(engine) as session:
 #         async with session.begin():
-#             result = await session.execute(Messages.delete().where(Messages.c.user_id == user_id))
+#             result = await session.execute(Message.delete().where(Message.c.user_id == user_id))
 #             return result.all()
 
 # async def insert_user_chat_history(user_id, message_id, text):
 #     async with async_session(engine) as session:
 #         async with session.begin():
-#             result = await session.execute(Messages.insert().values(user_id=user_id, message_id=message_id, text=text))
+#             result = await session.execute(Message.insert().values(user_id=user_id, message_id=message_id, text=text))
 #             return result.all()
 
 # async def add_user_chat_history(user_id, message_id, text):
 #     async with async_session(engine) as session:
 #         async with session.begin():
-#             result = await session.execute(Messages.insert().values(user_id=user_id, message_id=message_id, text=text))
+#             result = await session.execute(Message.insert().values(user_id=user_id, message_id=message_id, text=text))
 #             return result.all()
 
 # async def remove_last_user_chat_history(user_id):
 #     async with async_session(engine) as session:
 #         async with session.begin():
-#             result = await session.execute(Messages.delete().where(Messages.c.user_id == user_id).order_by(Messages.c.message_id.desc()).limit(1))
+#             result = await session.execute(Message.delete().where(Message.c.user_id == user_id).order_by(Message.c.message_id.desc()).limit(1))
 #             return result.all()
 
 # async def remove_last_chath_history_of_user(user_id):
 #     async with async_session(engine) as session:
 #         async with session.begin():
-#             result = await session.execute(Messages.delete().where(Messages.c.user_id == user_id).order_by(Messages.c.message_id.desc()).limit(1))
+#             result = await session.execute(Message.delete().where(Message.c.user_id == user_id).order_by(Message.c.message_id.desc()).limit(1))
 #             return result.all()
 
 # async def select_first_chat_history_of_user(user_id):
 #     async with async_session(engine) as session:
 #         async with session.begin():
-#             result = await session.execute(select(Messages).where(Messages.c.user_id == user_id).order_by(Messages.c.message_id.asc()).limit(1))
+#             result = await session.execute(select(Message).where(Message.c.user_id == user_id).order_by(Message.c.message_id.asc()).limit(1))
 #             return result.all()
 
 # async def replace_first_chat_history_of_user(user_id, message_id, text):
 #     async with async_session(engine) as session:
 #         async with session.begin():
-#             result = await session.execute(Messages.update().where(Messages.c.user_id == user_id).order_by(Messages.c.message_id.asc()).limit(1).values(message_id=message_id, text=text))
+#             result = await session.execute(Message.update().where(Message.c.user_id == user_id).order_by(Message.c.message_id.asc()).limit(1).values(message_id=message_id, text=text))
 #             return result.all()
 
 # async def init_new_user(message):

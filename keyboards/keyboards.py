@@ -11,7 +11,7 @@ def get_chat_kb() -> ReplyKeyboardMarkup:
 def get_chat_options_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     kb.button( text = "Clear last dialogue" )
-    kb.button( text = "Repeat question" )
+    # kb.button( text = "Repeat question" )
     kb.button( text = "Clear chat" )
     kb.button( text = "Cancel" )
     kb.adjust(4)
@@ -21,26 +21,40 @@ def get_system_options_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     kb.button(text="AI personality")
     kb.button(text="AI Model")
-    kb.button(text="Language")
+    # kb.button(text="Format")
+    # kb.button(text="Language")
     kb.button(text="Cancel")
     kb.adjust(4)
     return kb.as_markup(resize_keyboard=True, onetime_keyboard=False)
 
 def get_system_chat_mode_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
-    for i in range(1, 7):
+    for i in range(1, 10):
         kb.button(text=str(i))
+    # kb.button(text="Show")
+    kb.button(text="Edit current")
     kb.button(text="Cancel")
-    kb.adjust(4,3)
+    kb.adjust(3, 3, 3, 2)
     return kb.as_markup(resize_keyboard=True, onetime_keyboard=False)
 
 def get_system_model_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
-    for i in range(1, 3):
+    for i in range(1, 4):
         kb.button(text=str(i))
     kb.button(text="Cancel")
 #    kb.adjust(2,2,2)
     return kb.as_markup(resize_keyboard=True, onetime_keyboard=False)
+
+# Depreciated. Choose model format.
+# def get_template_format_kb() -> ReplyKeyboardMarkup:
+#     kb = ReplyKeyboardBuilder()
+#     kb.button(text="Mistral")
+#     kb.button(text="ChatML")
+#     kb.button(text="json")
+#     kb.button(text="Cancel")
+# #    kb.adjust(2,2,2)
+#     return kb.as_markup(resize_keyboard=True, onetime_keyboard=True)
+
 
 def get_confirm_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
@@ -49,7 +63,10 @@ def get_confirm_kb() -> ReplyKeyboardMarkup:
     kb.adjust(2)
     return kb.as_markup(resize_keyboard=True, input_field_placeholder = "Please confirm")
 
-
+def cancel_kb() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardBuilder()
+    kb.button(text="Cancel")
+    return kb.as_markup(resize_keyboard=True, input_field_placeholder = "Please confirm")
 ##########################################################################################################################################################
 # Classic way to build keyboard
     # keyboard = [[
