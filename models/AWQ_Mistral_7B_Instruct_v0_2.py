@@ -4,6 +4,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
 
 async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm):
 
+    print("1----------------------------------------------prompt TO AWQ Mistral 7b-----------------------------------------")
+    print(prompt_to_llm)
+    print("2---------------------------------------------------------------------------------------------------------------")
+
+
     model_name_or_path = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ"
 
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
@@ -34,7 +39,7 @@ async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm):
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 40,
-        "max_new_tokens": 512,
+        "max_new_tokens": 10, #512
         "repetition_penalty": 1.1
     }
 
@@ -70,9 +75,9 @@ async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm):
     #print("pipeline output: ", pipe_output)
 
     llm_reply = str(pipe_output.split('[/INST] ')[-1]).split('</s>')[0]
-    print("3----------------------------------------------raw prompt FROM AWQ Mistral 7B-----------------------------------------------------")
+    print("3----------------------------------------------RAW output FROM AWQ Mistral 7B-----------------------------------")
     print(pipe_output)
-    print("4-splitted--------------------------------------------------------------------------------------------------------------")
+    print("4---------------------------------------------SPLIT output FROM AWQ Mistral 7B----------------------------------")
     print(llm_reply)
     print("5---------------------------------------------------------------------------------------------------------------")
     return str(llm_reply)

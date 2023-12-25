@@ -31,7 +31,7 @@ router = Router()
 # Send to LLM
 #@router.message() NONE ???
 @router.message(UIStates.chat)
-async def send_to_llm(message: Message, state: FSMContext) -> None:
+async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str = "") -> None:
     # Try to stop accepting messages while LLM is thinking
     # data = await state.get_data()
     # print("-----------------!!!!!!!-BEGIN-!!!!-DATA\n")
@@ -57,7 +57,15 @@ async def send_to_llm(message: Message, state: FSMContext) -> None:
         roles = [current_user_system_prompt[1], current_user_system_prompt[2]]
         #roles = ["", ""]
         # template to model table
-        prompt_to_llm = await chat_template(message, format_to = current_user_model[2], roles = roles)
+
+        current_state = await state.get_state()
+        print(f"current_state!!!!!!!!!!!!{current_state}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        if current_state == "UIStates:confirm_send_transcript":
+            message_to_llm = message_to_llm
+        else:
+            message_to_llm = message.text
+        print(f"message_to_llm!!!!!!!!!!!!{message_to_llm}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], roles = roles)
 
         ###########################################################
         # Send prompt to LLM

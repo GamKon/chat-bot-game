@@ -41,7 +41,7 @@ def GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm):
 
     llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
 
-    print("3----------------------------------------------raw prompt FROM Mixtral 8x7B GPTQ-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM Mixtral 8x7B GPTQ-----------------------------------------------------")
     print(llm_reply_full)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)
@@ -99,7 +99,7 @@ async def GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm):
 
     llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
 
-    print("3----------------------------------------------raw prompt FROM Mixtral 8x7B GPTQ-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM Mixtral 8x7B GPTQ-----------------------------------------------------")
     print(llm_reply_full)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)

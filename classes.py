@@ -19,4 +19,5 @@ class UIStates(StatesGroup):
     waiting_ai_answer = State()
     edit_system_prompt = State()
     edit_system_prompt_confirm = State()
+    confirm_send_transcript = State()
     # sys_template_format = State()

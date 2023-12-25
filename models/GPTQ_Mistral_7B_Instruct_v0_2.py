@@ -40,7 +40,7 @@ async def Mistral_7B_Instruct(prompt_to_llm):
 
     llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
 
-    print("3----------------------------------------------raw prompt FROM Mistral 7b GPTQ-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM Mistral 7b GPTQ-----------------------------------------------------")
     print(llm_reply_full)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)
@@ -105,7 +105,7 @@ async def Mistral_7B_Instruct_pipeline(prompt_to_llm):
     )
     llm_reply_full = pipe(prompt_to_llm)[0]['generated_text']#.split('[/INST] ')[-1]
     llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
-    print("3----------------------------------------------raw prompt FROM  Mistral 7b GPTQ pipe-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM  Mistral 7b GPTQ pipe-----------------------------------------------------")
     print(llm_reply_full)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)

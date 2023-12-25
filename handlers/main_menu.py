@@ -12,7 +12,7 @@ from keyboards.keyboards import *
 from db.queries import *
 from classes import UIStates
 from utility import pin_user_settings
-
+from handlers.ai import send_to_llm
 from models.openai_whisper_large_v3 import openai_whisper_large_v3
 
 router = Router()
@@ -107,11 +107,30 @@ async def cancel_handler(message: Message, state: FSMContext) -> None:
 async def db_error(message: Message, state: FSMContext) -> None:
     await message.answer("Please use /start to start over", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
+##########################################################################################################################################################
+# Voice message
 @router.message(F.voice)
-async def download_voice(message: Message, bot: Bot):
+async def download_voice(message: Message, state: FSMContext, bot: Bot):
     await bot.download(
         message.voice,
+# TODO save file to memory only
         destination=f"data/voice/{message.voice.file_id}.ogg",
     )
     transcript = openai_whisper_large_v3(f"data/voice/{message.voice.file_id}.ogg")
-    await message.answer(transcript)
+    data = await state.update_data(transcript = transcript)
+    # Save transcript to state
+    await state.set_state( UIStates.confirm_send_transcript )
+    await message.answer(f"You just said:\n\n{transcript}\n\nSend it to the chat?", reply_markup = get_confirm_kb())
+# Send transcript to LLM
+@router.message(UIStates.confirm_send_transcript)
+async def send_transcript(message: Message, state: FSMContext) -> None:
+    if message.text.casefold() == "ok":
+        await message.answer("Sent", reply_markup = get_chat_kb())
+        # Get transcript from state
+        data = await state.get_data()
+        message_to_llm = data["transcript"]
+        print(f"message.text from transcript:\n{message_to_llm.strip()}")
+        await send_to_llm(message, state, message_to_llm.strip())
+    else:
+        await message.answer("Canceled", reply_markup = get_chat_kb())
+    await state.set_state( UIStates.chat )

@@ -58,7 +58,7 @@ def AWQ_Mixtral_8x7B_Instruct(prompt_to_llm):
 
 
     llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
-    print("3----------------------------------------------raw prompt FROM AWQ Mixtral 8x7B-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM AWQ Mixtral 8x7B-----------------------------------------------------")
     print(llm_reply_full)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)
@@ -137,7 +137,7 @@ def AWQ_Mixtral_8x7B_Instruct_pipe(prompt_to_llm):
 
     llm_reply_full = pipe(prompt_to_llm)[0]['generated_text']#.split('[/INST] ')[-1]
     llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
-    print("3----------------------------------------------raw prompt FROM  AWQ Mixtral 8x7B pipe-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM  AWQ Mixtral 8x7B pipe-----------------------------------------------------")
     print(llm_reply_full)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)

@@ -67,7 +67,7 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm):
 
     # llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
 
-    # print("3----------------------------------------------raw prompt FROM AWQ_Dolphin-----------------------------------------------------")
+    # print("3----------------------------------------------raw output FROM AWQ_Dolphin-----------------------------------------------------")
     # print(llm_reply_full)
     # print("4-splitted--------------------------------------------------------------------------------------------------------------")
     # print(llm_reply)
@@ -92,7 +92,7 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm):
 
 
     llm_reply = pipe_output.split('<|im_start|>')[-1]
-    print("3----------------------------------------------raw prompt FROM AWQ_Dolphin pipe-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM AWQ_Dolphin pipe-----------------------------------------------------")
     print(pipe_output)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)

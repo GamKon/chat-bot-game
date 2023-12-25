@@ -43,7 +43,7 @@ async def GPTQ_Wizard_Vicuna_13B(prompt_to_llm):
 
     llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
 
-    print("3----------------------------------------------raw prompt FROM Wizard Vicuna 13B-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM Wizard Vicuna 13B-----------------------------------------------------")
     print(llm_reply_full)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)

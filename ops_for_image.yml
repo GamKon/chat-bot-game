@@ -17,6 +17,9 @@ actions:
     command: python3 ./db/init_db.py
     load_secrets: true
     description: Create database tables
+  nvi:
+    command: /home/user/.local/bin/nvitop
+    description: Run nvitop monitor for GPU. Installed by pip. https://github.com/XuehaiPan/nvitop
   nv:
     command: nvtop
     description: Run monitor for GPU
