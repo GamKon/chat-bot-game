@@ -70,7 +70,7 @@ async def user_status(user_id):
 # Get all user messages
 async def select_user_chat_history(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(Message.role, Message.content).where(Message.user_id == user_id).order_by(Message.id.asc()))
+        result = await conn.execute(select(Message.author, Message.content).where(Message.user_id == user_id).order_by(Message.id.asc()))
         return result.all()
 ##########################################################################################################################################################
 # Add user message

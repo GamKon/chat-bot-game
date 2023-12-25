@@ -86,6 +86,48 @@ async def edit_user_system_prompt(message: Message, state: FSMContext) -> None:
         await message.answer("Can't be empty", reply_markup = get_chat_kb())
     await state.set_state( UIStates.chat )
 
+@router.message(UIStates.edit_system_prompt_ai_name)
+async def edit_user_system_prompt(message: Message, state: FSMContext) -> None:
+    #current_persona = await select_system_prompt(user_id = message.from_user.id)
+    #await message.answer(f"Current persona is:\n{current_persona[0]}")
+#    await message.answer("Please enter new system prompt", reply_markup = get_confirm_kb())
+    print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n{message.text}\n!!!!!!!!!!!!")
+    print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n{message.text.casefold()}\n!!!!!!!!!!!!")
+    print(len(message.text))
+
+    if message.text.casefold() == "cancel":
+        await message.answer("Canceled", reply_markup = get_chat_kb())
+        await state.set_state( UIStates.chat )
+
+    elif len(message.text) > 0 :
+        await edit_system_prompt(user_id = message.from_user.id, prompt_text = message.text)
+        await pin_user_settings(message)
+        await main_menu(message, state)
+    else:
+        await message.answer("Can't be empty", reply_markup = get_chat_kb())
+    await state.set_state( UIStates.chat )
+
+    @router.message(UIStates.edit_system_prompt_username)
+async def edit_user_system_prompt(message: Message, state: FSMContext) -> None:
+    #current_persona = await select_system_prompt(user_id = message.from_user.id)
+    #await message.answer(f"Current persona is:\n{current_persona[0]}")
+#    await message.answer("Please enter new system prompt", reply_markup = get_confirm_kb())
+    print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n{message.text}\n!!!!!!!!!!!!")
+    print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n{message.text.casefold()}\n!!!!!!!!!!!!")
+    print(len(message.text))
+
+    if message.text.casefold() == "cancel":
+        await message.answer("Canceled", reply_markup = get_chat_kb())
+        await state.set_state( UIStates.chat )
+
+    elif len(message.text) > 0 :
+        await edit_system_prompt(user_id = message.from_user.id, prompt_text = message.text)
+        await pin_user_settings(message)
+        await main_menu(message, state)
+    else:
+        await message.answer("Can't be empty", reply_markup = get_chat_kb())
+    await state.set_state( UIStates.chat )
+
 ##########################################################################################################################################################
 # LLM Model change
 ##########################################################################################################################################################

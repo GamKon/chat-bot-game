@@ -20,10 +20,12 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             # TODO add custom role names
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
             # x if C else y
+
+            # Check for message's Author form Messages table (user, ai)
             if prompt[0].lower() == "user":
                 prompt_to_llm += user_role_name + prompt[1] + " [/INST] "
-            else:
-                # Remove assistant role name from prompt if AI adds it
+            elif prompt[0].lower() == "ai":
+                # Remove assistant role name from prompt if AI added it
                 if assistant_role_name != "":
                     assistant_prompt = prompt[1].replace(assistant_role_name, "", 1)
                 else:

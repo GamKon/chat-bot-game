@@ -146,8 +146,8 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                     return
                 sleep(5)
     # Save to DB
-    await add_message(user_id = message.from_user.id, role = "user", content = message.text)
-    await add_message(user_id = message.from_user.id, role = "assistant", content = llm_answer)
+    await add_message(user_id = message.from_user.id, role = "user", content = message_to_llm)
+    await add_message(user_id = message.from_user.id, role = "ai", content = llm_answer)
     await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
 
 ##########################################################################################################################################################
