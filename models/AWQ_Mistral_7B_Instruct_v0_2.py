@@ -39,7 +39,7 @@ async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm):
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 40,
-        "max_new_tokens": 10, #512
+        "max_new_tokens": 256,
         "repetition_penalty": 1.1
     }
 

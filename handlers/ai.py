@@ -45,7 +45,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     #     return
     # ???
 
-    bot_message = await message.answer("Let me think...", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
+    bot_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
     current_user_model = await select_user_llm_model(message.from_user.id)
     # Status "Typing..."
     async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
@@ -54,7 +54,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
         # make messages list from DB in STRING format
         # Set what names to template as "user" and "assistant" roles
         current_user_system_prompt = await select_system_prompt(message.from_user.id)
-        roles = [current_user_system_prompt[1], current_user_system_prompt[2]]
+# roles = [current_user_system_prompt[1], current_user_system_prompt[2]]
         #roles = ["", ""]
         # template to model table
 
@@ -65,12 +65,12 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
         else:
             message_to_llm = message.text
         print(f"message_to_llm!!!!!!!!!!!!{message_to_llm}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], roles = roles)
+        prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2])#, roles = roles)
 
         ###########################################################
         # Send prompt to LLM
         # 5 tries to handle model Errors
-        for i in range(1, 6):
+        for i in range(1, 7):
             try:
                 ###########################################
                 # Mistral_7B_Instruct
@@ -139,15 +139,18 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 break
             except (ValueError, RuntimeError) as e:
                 # Print error message
-                if i < 5:
+                if i < 6:
                     await message.answer("Still thinking...\n" + str(e) + "\nRetry #"+str(i))
                 else:
                     await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
                     return
-                sleep(5)
+                sleep(6)
     # Save to DB
-    await add_message(user_id = message.from_user.id, role = "user", content = message_to_llm)
-    await add_message(user_id = message.from_user.id, role = "ai", content = llm_answer)
+    await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm)
+    await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer)
+    await bot_message.delete()
+#    await message.edit_text("💡")
+    #await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
     await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
 
 ##########################################################################################################################################################

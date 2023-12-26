@@ -3,6 +3,8 @@ from db.queries import *
 ###########################################################
 # Prepare prompt for LLM
 async def chat_template(message_to_llm: str, message: Message, format_to: str = "Mistral", roles: list = ["", ""],):
+    current_user_system_prompt = await select_system_prompt(message.from_user.id)
+    roles = [current_user_system_prompt[1], current_user_system_prompt[2]]
     # If roles are empty, don't add ":" to prompt
     user_role_name      = "" if roles[0] == "" else f"{roles[0]}: "
     assistant_role_name = "" if roles[1] == "" else f"{roles[1]}: "
@@ -17,10 +19,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
         # make messages list from DB in STRING format
         prompt_to_llm = "<s>[INST] <<SYS>>\n" + system_role_prompt[0] + "\n<</SYS>>\n"
         for prompt in messages_history:
-            # TODO add custom role names
-            # !!! Anyway in DB roles must be "user" and "assistant" !!!
-            # x if C else y
-
             # Check for message's Author form Messages table (user, ai)
             if prompt[0].lower() == "user":
                 prompt_to_llm += user_role_name + prompt[1] + " [/INST] "

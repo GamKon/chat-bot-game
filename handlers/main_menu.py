@@ -41,11 +41,9 @@ async def command_start( message: Message, state: FSMContext ) -> None:
                                     username    = message.from_user.username,
                                     language    = "English",
                                     model_id    = 1)
-                                    # prompt_id   = 1,
-
             print(f"User: {message.from_user.username} added to DB")
             await add_default_user_prompts(user_id = message.from_user.id)
-        content = Text("Hello, ", Bold(message.from_user.first_name), "!")
+        content = Text("Hello, ", Bold(message.from_user.first_name), "!\n\nI'm a chatbot that can talk to you in different roles. You can give me any personality you like.\nCurrent settings:")
         await message.answer(**content.as_kwargs())
 
         # Get detailed user status
@@ -63,7 +61,7 @@ async def command_start( message: Message, state: FSMContext ) -> None:
     except Exception as e:
         print(e)
         await state.set_state( UIStates.db_error )
-        await message.answer("Something went wrong, please try again later", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
+        await message.answer("⛔ Something went wrong, please try again later", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
         return
 
     #await main_menu(message, state)
@@ -72,34 +70,39 @@ async def command_start( message: Message, state: FSMContext ) -> None:
 # Main menu
 async def main_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(UIStates.chat)
-    await message.answer("Waiting for a command", reply_markup = get_chat_kb())
+    await message.answer("<i>Talk to me </i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
 ##########################################################################################################################################################
 # Chat Menu
 @router.message(Command("menu"))
-@router.message(F.text.casefold() == "chat menu")
+@router.message(F.text.casefold() == "📝 chat menu")
 async def chat_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(UIStates.menu)
-    await message.answer("Choose option", reply_markup = get_chat_options_kb())
+    await message.answer("<i>Choose option</i>", reply_markup = get_chat_options_kb(), parse_mode = "HTML")
 
 ##########################################################################################################################################################
 # System Menu
 @router.message(Command("sys"))
-@router.message(F.text.casefold() == "system settings")
+@router.message(F.text.casefold() == "🔧 system settings")
 async def chat_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(UIStates.sys)
-    await message.answer("Choose option", reply_markup = get_system_options_kb())
+    await message.answer("<i>Choose option</i>", reply_markup = get_system_options_kb(), parse_mode = "HTML")
 
 ##########################################################################################################################################################
 # Cancel
 @router.message(Command("cancel"))
-@router.message(UIStates.sys,           F.text.casefold() == "cancel")
-@router.message(UIStates.menu,          F.text.casefold() == "cancel")
-@router.message(UIStates.menu_confirm,  F.text.casefold() == "cancel")
-@router.message(UIStates.sys_mode,      F.text.casefold() == "cancel")
-@router.message(UIStates.sys_ai_model,  F.text.casefold() == "cancel")
+@router.message(UIStates.sys,           F.text.casefold() == "❌ cancel")
+@router.message(UIStates.menu,          F.text.casefold() == "❌ cancel")
+@router.message(UIStates.menu_confirm,  F.text.casefold() == "❌ cancel")
+@router.message(UIStates.sys_mode,      F.text.casefold() == "❌ cancel")
+@router.message(UIStates.sys_ai_model,  F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_system_prompt_prompt,  F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_system_prompt_username,  F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_system_prompt_ai_name,  F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_system_prompt_save_name,  F.text.casefold() == "❌ cancel")
+
 async def cancel_handler(message: Message, state: FSMContext) -> None:
     await state.set_state( UIStates.chat )
-    await message.answer("Canceled", reply_markup = get_chat_kb())
+    await message.answer("<i>Canceled</i>", reply_markup = get_chat_kb(),parse_mode = "HTML")
 
 ##########################################################################################################################################################
 # DB Error
@@ -120,17 +123,17 @@ async def download_voice(message: Message, state: FSMContext, bot: Bot):
     data = await state.update_data(transcript = transcript)
     # Save transcript to state
     await state.set_state( UIStates.confirm_send_transcript )
-    await message.answer(f"You just said:\n\n{transcript}\n\nSend it to the chat?", reply_markup = get_confirm_kb())
+    await message.answer(f"<i>It looks like you said:</i>\n\n{transcript}\n\n<i>Send it to the chat?</i>", reply_markup = get_confirm_kb())
 # Send transcript to LLM
 @router.message(UIStates.confirm_send_transcript)
 async def send_transcript(message: Message, state: FSMContext) -> None:
-    if message.text.casefold() == "ok":
-        await message.answer("Sent", reply_markup = get_chat_kb())
+    if message.text.casefold() == "✅ ok":
+#        await message.answer("Sent", reply_markup = get_chat_kb())
         # Get transcript from state
         data = await state.get_data()
         message_to_llm = data["transcript"]
         print(f"message.text from transcript:\n{message_to_llm.strip()}")
         await send_to_llm(message, state, message_to_llm.strip())
     else:
-        await message.answer("Canceled", reply_markup = get_chat_kb())
+        await message.answer("<i>Canceled</i>", reply_markup = get_chat_kb())
     await state.set_state( UIStates.chat )
