@@ -43,7 +43,7 @@ async def command_start( message: Message, state: FSMContext ) -> None:
                                     model_id    = 1)
             print(f"User: {message.from_user.username} added to DB")
             await add_default_user_prompts(user_id = message.from_user.id)
-        content = Text("Hello, ", Bold(message.from_user.first_name), "!\n\nI'm a chatbot that can talk to you in different roles. You can give me any personality you like.\nCurrent settings:")
+        content = Text("Hello, ", Bold(message.from_user.first_name), "!\n\nI'm a chatbot that can talk to you in different roles. You can give me any personality you like.")
         await message.answer(**content.as_kwargs())
 
         # Get detailed user status
@@ -95,9 +95,9 @@ async def chat_menu(message: Message, state: FSMContext) -> None:
 @router.message(UIStates.menu_confirm,  F.text.casefold() == "❌ cancel")
 @router.message(UIStates.sys_mode,      F.text.casefold() == "❌ cancel")
 @router.message(UIStates.sys_ai_model,  F.text.casefold() == "❌ cancel")
-@router.message(UIStates.edit_system_prompt_prompt,  F.text.casefold() == "❌ cancel")
-@router.message(UIStates.edit_system_prompt_username,  F.text.casefold() == "❌ cancel")
-@router.message(UIStates.edit_system_prompt_ai_name,  F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_system_prompt_prompt,     F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_system_prompt_username,   F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_system_prompt_ai_name,    F.text.casefold() == "❌ cancel")
 @router.message(UIStates.edit_system_prompt_save_name,  F.text.casefold() == "❌ cancel")
 
 async def cancel_handler(message: Message, state: FSMContext) -> None:

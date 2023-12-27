@@ -2,8 +2,9 @@
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
 
-async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm):
+async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm: str, max_new_tokens: int):
 
+    if max_new_tokens <= 20 and max_new_tokens >= 2048: max_new_tokens = 256
     print("1----------------------------------------------prompt TO AWQ Mistral 7b-----------------------------------------")
     print(prompt_to_llm)
     print("2---------------------------------------------------------------------------------------------------------------")
@@ -39,7 +40,7 @@ async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm):
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 40,
-        "max_new_tokens": 256,
+        "max_new_tokens": max_new_tokens,
         "repetition_penalty": 1.1
     }
 

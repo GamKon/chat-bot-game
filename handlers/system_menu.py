@@ -27,15 +27,30 @@ router = Router()
 @router.message(Command("pers"))
 @router.message(UIStates.sys, F.text.casefold() == "💃 ai personality")
 async def sys_change_chat_persona(message: Message, state: FSMContext) -> None:
-    current_persona = await select_system_prompt(user_id = message.from_user.id)
-    await message.answer(f"<b><i>Current system prompt:</i></b>\n{current_persona[0]}\n\n<b><i>Persona:</i></b> {current_persona[4]}\n<b><i>AI name:</i></b> {current_persona[2]}\n<b><i>User name:</i></b> {current_persona[1]}", parse_mode=ParseMode.HTML)
+    # current_persona = await select_system_prompt(user_id = message.from_user.id)
+    # await message.answer(html.code("Current system prompt:") + html.pre(f"{current_persona[0]}") + f"<b><i>Persona:</i></b> {current_persona[4]}\n<b><i>AI name:</i></b> {current_persona[2]}\n<b><i>User name:</i></b> {current_persona[1]}", parse_mode=ParseMode.HTML)
+    user_settings = await select_user_settings(user_id = message.from_user.id)
+    print(f"Your settings:\n{user_settings}")
+    await message.answer(   html.code("Persona:") +
+                            f" <b>{user_settings[0]}</b>\n" +
+                            html.code("Model:") +
+                            f" <b>{user_settings[1]}</b>\n" +
+                            html.code("personality:") +
+                            html.pre(f"{user_settings[2]}") +
+                            f"\n" + html.code("Bot name:") +
+                            f"   <b>{user_settings[4]}</b>\n" +
+                            html.code("Your name:") +
+                            f" <b>{user_settings[3]}</b>",
+                            parse_mode=ParseMode.HTML)
+
 
     system_prompts_available = await select_all_system_prompts(user_id = message.from_user.id)
 
-    list_models = "<b><i>Please, choose AI personality</i></b>\n\n"
+    list_models = f"<i>Please, choose AI personality</i>\n"
     for i in range(len(system_prompts_available)):
-        list_models += f"{html.quote(get_emoji_number(i+1))} - <b>{html.quote(system_prompts_available[i][0])}</b>\n"
-    await message.answer(list_models, reply_markup = get_system_chat_mode_kb(), parse_mode=ParseMode.HTML)
+        list_models += f"{html.quote(get_emoji_number(i+1))} - " + html.code(f"{system_prompts_available[i][0]}") + "\n"
+    persona_list = await message.answer(list_models, reply_markup = get_system_chat_mode_kb(), parse_mode=ParseMode.HTML)
+    await state.update_data(persona_list = persona_list.message_id)
     await state.set_state( UIStates.sys_mode )
 ##########################################################################################################################################################
 # Choose chat personality
@@ -50,6 +65,8 @@ async def sys_choose_chat_persona(message: Message, state: FSMContext) -> None:
 #        await main_menu(message, state)
 
     elif message.text.casefold() == "✍️ edit current":
+        data = await state.get_data()
+        await bot.delete_message(message.chat.id, data["persona_list"])
         current_persona = await select_system_prompt(user_id = message.from_user.id)
         print(f"current_persona:\n{current_persona}")
         print("---------------------------------------------------------------")
@@ -60,8 +77,8 @@ async def sys_choose_chat_persona(message: Message, state: FSMContext) -> None:
         #await message.answer(f"Current persona is:\n{current_persona[0]}")
         #await state.set_state(UIStates.chat)
 
-        await message.answer(f"<b><i>Current system prompt:</i></b>\n{current_persona[0]}\n\n<b><i>Persona:</i></b> {current_persona[4]}\n<b><i>AI name:</i></b> {current_persona[2]}\n<b><i>User name:  </i></b> {current_persona[1]}", parse_mode=ParseMode.HTML, reply_markup = edit_system_prompt_kb())
-        await message.answer("<i>Use buttons ⬆️ to edit personality.</i>", reply_markup = get_chat_kb(), parse_mode=ParseMode.HTML)
+#        await message.answer(html.code("Current system prompt:") + html.pre(f"{current_persona[0]}") + f"\n<b><i>Persona:</i></b> {current_persona[4]}\n<b><i>AI name:</i></b> {current_persona[2]}\n<b><i>User name:  </i></b> {current_persona[1]}", parse_mode=ParseMode.HTML, reply_markup = edit_system_prompt_kb())
+        await message.answer(html.code("Use buttons to edit personality."), parse_mode=ParseMode.HTML, reply_markup = edit_system_prompt_kb())
 #        await state.set_state( UIStates.edit_system_prompt )
 #        await edit_user_system_prompt(message, state)
 #        await message.answer("Please edit system prompt", reply_markup = edit_system_prompt_kb())
@@ -140,7 +157,28 @@ async def edit_user_system_prompt_ai_name(message: Message, state: FSMContext) -
     if message.text.casefold() != "❌ cancel":
         current_persona = await select_system_prompt(user_id = message.from_user.id)
         await edit_system_prompt(user_id = message.from_user.id, prompt_text = current_persona[0], user_role_name = current_persona[1], ai_role_name = current_persona[2], save_name=message.text)
-        await message.answer(f"<i>Done. My persona name:  </i><b>{message.text}</b>", parse_mode=ParseMode.HTML)
+        await message.answer(f"<i>Done. My persona name:</i>  <b>{message.text}</b>", parse_mode=ParseMode.HTML)
+        await main_menu(message, state)
+
+##########################################################################################################################################################
+# Edit max answer length
+@router.callback_query(F.data == "max_answer_lenght")
+async def edit_user_system_prompt(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer("<i>Enter max <b>answer length</b> in tokens\nfrom 20 to 2048, default 256</i>", parse_mode=ParseMode.HTML, reply_markup = cancel_kb())
+    #await UIStates.edit_system_prompt.set()
+    await state.set_state( UIStates.edit_max_answer_length )
+##########################################################################################################################################################
+@router.message(UIStates.edit_max_answer_length)
+async def edit_max_answer_length(message: Message, state: FSMContext) -> None:
+    if message.text.casefold() != "❌ cancel":
+        try:
+            if int(message.text) >= 20 and int(message.text) <= 2048:
+                data = await state.update_data(max_new_tokens = int(message.text))
+                await message.answer(f"<i>Done. Maximum answer lenght:</i> <b>{message.text}</b> tokens", parse_mode=ParseMode.HTML)
+            else:
+                raise Exception
+        except:
+            await message.answer(f"<i>Wrong input. Must be a number from 20 to 2048</i>", parse_mode=ParseMode.HTML)
         await main_menu(message, state)
 
 
@@ -165,12 +203,12 @@ async def edit_user_system_prompt_ai_name(message: Message, state: FSMContext) -
 async def sys_change_llm_model(message: Message, state: FSMContext) -> None:
     # Print current
     current_llm = await select_user_llm_model(user_id = message.from_user.id)
-    await message.answer(f"<i>Current model:</i>\n<b>{current_llm[0]}</b>")
+    await message.answer(html.code("Current model:") + f"\n<b>{current_llm[0]}</b>")
     # give  a list of available models
     models_available = await select_all_models()
-    list_models = "<i>Which AI would you like to try?</i>\n\n"
+    list_models = "<i>Which AI would you like to try?</i>\n"
     for i in range(len(models_available)-1):
-        list_models += f"{html.quote(get_emoji_number(i+1))} - <b>{html.quote(models_available[i][1])}</b>\n\n"
+        list_models += f"{html.quote(get_emoji_number(i+1))} - " + html.code(f"{models_available[i][1]}") + "\n"
     await message.answer(list_models, reply_markup = get_system_model_kb(), parse_mode=ParseMode.HTML)
     await state.set_state( UIStates.sys_ai_model )
 

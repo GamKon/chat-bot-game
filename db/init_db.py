@@ -62,6 +62,7 @@ class Model(Base):
     name            = Column(Text,       unique      = True, nullable = False)
     description     = Column(Text,       unique      = True, nullable = False)
     prompt_format   = Column(String(64), nullable    = False)
+    max_new_tokens  = Column(Integer)
     created_at      = Column(DateTime(timezone=True), default=func.now())
 
 ##########################################################################################################################################################
@@ -86,10 +87,10 @@ async def create_all_tables():
                 Prompt( name  = "Empty-8",  user_role_name = "",       ai_role_name = "",           prompt = " "),
                 Prompt( name  = "Empty-9",  user_role_name = "",       ai_role_name = "",           prompt = " "),
 
-                Model(  model_id = 1,  name  = getenv("MODEL_NAME"),                        prompt_format = "Mistral",  description = getenv("MODEL_DESCRIPTION")),
-                Model(  model_id = 2,  name  = "TheBloke/dolphin-2_2-yi-34b-AWQ",           prompt_format = "ChatML",   description = "Norm: Dolphin-2_2-yi-34b"),
-                Model(  model_id = 3,  name  = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ",  prompt_format = "Mistral",  description = "Slow: Mixtral-8x7B-Instruct"),
-                Model(  model_id = 35, name  = "gpt-3.5-turbo-1106",                        prompt_format = "json",     description = "OpenAI gpt-3.5-turbo-1106")
+                Model(  model_id = 1,  name  = getenv("MODEL_NAME"),                        prompt_format = "Mistral",  max_new_tokens = 256, description = getenv("MODEL_DESCRIPTION")),
+                Model(  model_id = 2,  name  = "TheBloke/dolphin-2_2-yi-34b-AWQ",           prompt_format = "ChatML",   max_new_tokens = 256, description = "Norm: Dolphin-2_2-yi-34b"),
+                Model(  model_id = 3,  name  = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ",  prompt_format = "Mistral",  max_new_tokens = 256, description = "Slow: Mixtral-8x7B-Instruct"),
+                Model(  model_id = 35, name  = "gpt-3.5-turbo-1106",                        prompt_format = "json",     max_new_tokens = 256, description = "OpenAI gpt-3.5-turbo-1106")
             ])
         await session.commit()
     print('\nAll tables populated\n')

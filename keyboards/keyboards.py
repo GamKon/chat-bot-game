@@ -68,4 +68,6 @@ def edit_system_prompt_kb() -> InlineKeyboardMarkup:
     kb.add(InlineKeyboardButton(text="AI name", callback_data="edit_ai_name"))
     kb.add(InlineKeyboardButton(text="User name", callback_data="edit_user_name"))
     kb.add(InlineKeyboardButton(text="Persona name", callback_data="edit_save_slot"))
+    kb.add(InlineKeyboardButton(text="Answer length", callback_data="max_answer_lenght"))
+    kb.adjust(3, 2)
     return kb.as_markup()

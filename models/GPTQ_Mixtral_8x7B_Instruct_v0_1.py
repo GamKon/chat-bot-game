@@ -3,7 +3,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndB
 
 ##########################################################################################################################################################
 # Not pipeline
-def GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm):
+def GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm: str, max_new_tokens: int):
+
+    if max_new_tokens <= 20 and max_new_tokens >= 2048: max_new_tokens = 256
+
     model_name_or_path = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ"
     # revision = "gptq-8bit-128g-actorder_True"
     revision = "gptq-4bit-32g-actorder_True"
@@ -30,11 +33,11 @@ def GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm):
 
     output = model.generate(
         inputs=input_ids,
-        temperature=0.7,
-        do_sample=True,
-        top_p=0.95,
-        top_k=40,
-        max_new_tokens=256)
+        temperature     = 0.7,
+        do_sample       = True,
+        top_p           = 0.95,
+        top_k           = 40,
+        max_new_tokens  = max_new_tokens)
 
     # string
     llm_reply_full = tokenizer.decode(output[0])
@@ -50,7 +53,9 @@ def GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm):
 
 ##########################################################################################################################################################
 # Pipeline
-async def GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm):
+async def GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm: str, max_new_tokens: int):
+
+    if max_new_tokens <= 20 and max_new_tokens >= 2048: max_new_tokens = 256
 
     #model_name_or_path = "TheBloke/Mistral-7B-Instruct-v0.2-GPTQ"
     model_name_or_path = "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ"
@@ -86,7 +91,7 @@ async def GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm):
         task            = generation_type,
         model           = model,
         tokenizer       = tokenizer,
-        max_new_tokens  = 256,
+        max_new_tokens  = max_new_tokens,
         do_sample       = True,
 #        num_beams=3,
         temperature     = 0.7,

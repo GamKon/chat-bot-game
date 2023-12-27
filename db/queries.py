@@ -141,7 +141,7 @@ async def update_user_llm_model(user_id, model_id):
 ##########################################################################################################################################################
 async def select_user_llm_model(user_id):
     async with engine.begin() as conn:
-        result = await conn.execute(select(Model.name, Model.model_id, Model.prompt_format).where(User.user_id == user_id, Model.model_id == User.model_id))#, User.user_id == user_id))
+        result = await conn.execute(select(Model.name, Model.model_id, Model.prompt_format, Model.max_new_tokens).where(User.user_id == user_id, Model.model_id == User.model_id))#, User.user_id == user_id))
     return result.first()
 ##########################################################################################################################################################
 

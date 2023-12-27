@@ -32,6 +32,7 @@ router = Router()
 #@router.message() NONE ???
 @router.message(UIStates.chat)
 async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str = "") -> None:
+
     # Try to stop accepting messages while LLM is thinking
     # data = await state.get_data()
     # print("-----------------!!!!!!!-BEGIN-!!!!-DATA\n")
@@ -47,6 +48,23 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     bot_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
     current_user_model = await select_user_llm_model(message.from_user.id)
+
+    # Set maximum answer length max_new_tokens
+    try:
+        data = await state.get_data()
+        if "max_new_tokens" in data and data["max_new_tokens"] >= 20 and data["max_new_tokens"] <= 2048:
+            max_new_tokens = data["max_new_tokens"]
+            print(f"\n\nmax_new_tokens from context data= {max_new_tokens}\n\n")
+        elif current_user_model[3] >= 20 and current_user_model[3] <= 2048:
+            max_new_tokens = current_user_model[3]
+            print(f"\n\nmax_new_tokens from Model table = {max_new_tokens}\n\n")
+        else:
+            max_new_tokens = 256
+            print(f"\n\nmax_new_tokens from default = {max_new_tokens}\n\n")
+    except:
+        print("\n\nmax_new_tokens error, defaulting to 256\n\n")
+        max_new_tokens = 256
+
     # Status "Typing..."
     async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
         ###########################################################
@@ -80,7 +98,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                     # print("-----------------!!!!!!!-!!!!!!BEFORE!!!!!DATA\n")
                     # print(data)
 
-                    llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm)
+                    llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
                     #llm_answer = await Mistral_7B_Instruct_pipeline(prompt_to_llm)
                     #llm_answer = await Mistral_7B_Instruct(prompt_to_llm)
 
@@ -90,14 +108,14 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 ###########################################
                 # Mixtral-8x7B-Instruct
                 elif current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ":
-                    llm_answer = await GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm)
+                    llm_answer = await GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm, max_new_tokens)
                 ###########################################
                 # Dolphin-2_2-yi-34b-AWQ
                 elif current_user_model[0] == "TheBloke/dolphin-2_2-yi-34b-AWQ":
                     print("!!!current_user_model[2]!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                     print(current_user_model[2])
 
-                    llm_answer = await AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm)
+                    llm_answer = await AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm, max_new_tokens)
                     print("!!! llm_answer !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                     print(f"--{llm_answer}--")
 
