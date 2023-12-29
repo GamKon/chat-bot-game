@@ -99,7 +99,12 @@ async def edit_user_system_prompt(callback: CallbackQuery, state: FSMContext):
 async def edit_user_system_prompt_prompt(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         current_persona = await select_system_prompt(user_id = message.from_user.id)
-        await edit_system_prompt(user_id = message.from_user.id, prompt_text = message.text, user_role_name = current_persona[1], ai_role_name = current_persona[2], save_name=current_persona[4])
+        await edit_system_prompt(user_id = message.from_user.id,
+                                 prompt_text = message.text,
+                                 user_role_name = current_persona[1],
+                                 ai_role_name = current_persona[2],
+                                 save_name=current_persona[4],
+                                 max_new_tokens=current_persona[5])
         await message.answer(f"<i>Done.</i>")
         await pin_user_settings(message)
         await main_menu(message, state)
@@ -119,7 +124,14 @@ async def edit_user_system_prompt(callback: CallbackQuery, state: FSMContext):
 async def edit_user_system_prompt_username(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         current_persona = await select_system_prompt(user_id = message.from_user.id)
-        await edit_system_prompt(user_id = message.from_user.id, prompt_text = current_persona[0], user_role_name = message.text, ai_role_name = current_persona[2], save_name=current_persona[4])
+        await edit_system_prompt(
+            user_id = message.from_user.id,
+            prompt_text = current_persona[0],
+            user_role_name = message.text,
+            ai_role_name = current_persona[2],
+            save_name=current_persona[4],
+            max_new_tokens=current_persona[5]
+        )
         await message.answer(f"<i>Done. Your new name:  </i><b>{message.text}</b>", parse_mode=ParseMode.HTML)
         await main_menu(message, state)
    # else:
@@ -137,7 +149,12 @@ async def edit_user_system_prompt(callback: CallbackQuery, state: FSMContext):
 async def edit_user_system_prompt_ai_name(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         current_persona = await select_system_prompt(user_id = message.from_user.id)
-        await edit_system_prompt(user_id = message.from_user.id, prompt_text = current_persona[0], user_role_name = current_persona[1], ai_role_name = message.text, save_name=current_persona[4])
+        await edit_system_prompt(user_id = message.from_user.id,
+                                 prompt_text = current_persona[0],
+                                 user_role_name = current_persona[1],
+                                 ai_role_name = message.text,
+                                 save_name=current_persona[4],
+                                 max_new_tokens=current_persona[5])
         await message.answer(f"<i>Done. My new chat name:  </i><b>{message.text}</b>", parse_mode=ParseMode.HTML)
         await main_menu(message, state)
    # else:
@@ -156,7 +173,12 @@ async def edit_user_system_prompt(callback: CallbackQuery, state: FSMContext):
 async def edit_user_system_prompt_ai_name(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         current_persona = await select_system_prompt(user_id = message.from_user.id)
-        await edit_system_prompt(user_id = message.from_user.id, prompt_text = current_persona[0], user_role_name = current_persona[1], ai_role_name = current_persona[2], save_name=message.text)
+        await edit_system_prompt(user_id = message.from_user.id,
+                                 prompt_text = current_persona[0],
+                                 user_role_name = current_persona[1],
+                                 ai_role_name = current_persona[2],
+                                 save_name=message.text,
+                                 max_new_tokens=current_persona[5])
         await message.answer(f"<i>Done. My persona name:</i>  <b>{message.text}</b>", parse_mode=ParseMode.HTML)
         await main_menu(message, state)
 
@@ -174,6 +196,14 @@ async def edit_max_answer_length(message: Message, state: FSMContext) -> None:
         try:
             if int(message.text) >= 20 and int(message.text) <= 2048:
                 data = await state.update_data(max_new_tokens = int(message.text))
+                current_persona = await select_system_prompt(user_id = message.from_user.id)
+                await edit_system_prompt(user_id = message.from_user.id,
+                            prompt_text = current_persona[0],
+                            user_role_name = current_persona[1],
+                            ai_role_name = current_persona[2],
+                            save_name=current_persona[4],
+                            max_new_tokens=int(message.text))
+#                await update_user_max_new_tokens(user_id = message.from_user.id, max_new_tokens = int(message.text))
                 await message.answer(f"<i>Done. Maximum answer lenght:</i> <b>{message.text}</b> tokens", parse_mode=ParseMode.HTML)
             else:
                 raise Exception

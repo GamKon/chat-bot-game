@@ -5,12 +5,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram import Bot
 
-from classes import bot
-
 from handlers.main_menu             import main_menu
 from keyboards.keyboards            import *
 from models.openai_whisper_large_v3 import openai_whisper_large_v3
 from handlers.ai                    import send_to_llm
+
 from models.playgroundai            import playground_v2_1024px_aesthetic
 from models.OpenDalleV1_1           import OpenDalleV1_1
 from models.stable_diffusion        import stable_diffusion_xl_base_1_0, stable_diffusion_xl_base_refiner_1_0

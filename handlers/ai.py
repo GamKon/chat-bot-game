@@ -13,11 +13,11 @@ from models.AWQ_dolphin_2_2_yi_34b          import AWQ_Dolphin_2_2_yi_34b_pipe
 from models.AWQ_Mixtral_8x7B_Instruct_v0_1  import AWQ_Mixtral_8x7B_Instruct_pipe, AWQ_Mixtral_8x7B_Instruct
 from models.AWQ_Mistral_7B_Instruct_v0_2    import AWQ_Mistral_7B_Instruct_pipe
 from models.Mistral_7B_Instruct_v0_2        import Mistral_7B_Instruct_pipe
-from models.GPTQ_Wizard_Vicuna_13B_Uncensored_SuperHOT_8K import GPTQ_Wizard_Vicuna_13B
 from models.openai_chatgpt                  import gpt_3_5_turbo_1106
 from models.playgroundai                    import playground_v2_1024px_aesthetic
 from models.OpenDalleV1_1                   import OpenDalleV1_1
-from models.stable_diffusion                import stable_diffusion_xl_base_1_0
+from models.stable_diffusion                import stable_diffusion_xl_base_1_0, stable_diffusion_xl_base_refiner_1_0
+from models.Linaqruf_animagine_xl_2_0       import animagine_xl_2_0
 
 from handlers.main_menu             import main_menu
 
@@ -39,6 +39,9 @@ router = Router()
 @router.message(UIStates.chat)
 async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str = "") -> None:
 
+    # TODO Use Sync to Async wrapper to avoid blocking
+    # dp.message.middleware(ai.ai_middleware)
+    # asgiref.sync.sync_to_async
     # #Try to stop accepting messages while LLM is thinking
     # data = await state.get_data()
     # print("-----------------!!!!!!!-BEGIN-!!!!-DATA\n")
@@ -50,26 +53,27 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # if data["is_thinking"]:
     #     await message.reply("I'm still thinking at the first question, please be patient")
     #     return
-    # # ???
 
     emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
     current_user_model = await select_user_llm_model(message.from_user.id)
 
     # Set maximum answer length max_new_tokens
-    try:
-        data = await state.get_data()
-        if "max_new_tokens" in data and data["max_new_tokens"] >= 20 and data["max_new_tokens"] <= 2048:
-            max_new_tokens = data["max_new_tokens"]
-            print(f"\n\nmax_new_tokens from context data= {max_new_tokens}\n\n")
-        elif current_user_model[3] >= 20 and current_user_model[3] <= 2048:
-            max_new_tokens = current_user_model[3]
-            print(f"\n\nmax_new_tokens from Model table = {max_new_tokens}\n\n")
-        else:
-            max_new_tokens = 256
-            print(f"\n\nmax_new_tokens from default = {max_new_tokens}\n\n")
-    except:
-        print("\n\nmax_new_tokens error, defaulting to 256\n\n")
-        max_new_tokens = 256
+    #try:
+        #data = await state.get_data()
+    current_persona = await select_system_prompt(user_id = message.from_user.id)
+    max_new_tokens = current_persona[5]
+        # if "max_new_tokens" in data and data["max_new_tokens"] >= 20 and data["max_new_tokens"] <= 2048:
+        #     max_new_tokens = data["max_new_tokens"]
+        #     print(f"\n\nmax_new_tokens from context data= {max_new_tokens}\n\n")
+        # elif current_user_model[3] >= 20 and current_user_model[3] <= 2048:
+        #     max_new_tokens = current_user_model[3]
+        #     print(f"\n\nmax_new_tokens from Model table = {max_new_tokens}\n\n")
+    #     else:
+    #         max_new_tokens = 256
+    #         print(f"\n\nmax_new_tokens from default = {max_new_tokens}\n\n")
+    # except:
+    #     print("\n\nmax_new_tokens error, defaulting to 256\n\n")
+    #     max_new_tokens = 256
 
     # Status "Typing..."
     async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
@@ -203,22 +207,18 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 # Illustrate the answer
 async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
     max_new_tokens      = 128
-    num_inference_steps = 70
+    num_inference_steps = 90
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
     #description_prompt  =
     # "Short 77 tokens summarise what is on this picture. Start with {who is on the picture} continue with {what are they doing} and finish with {where it is}. Mark beginning and end with two asterisks. The picture description start: **{"
-    description_prompt  = "Give me very short 65 words summary who is on this picture and what is happening: '"
-    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Summary:", max_new_tokens)
+    description_prompt  = "Summaryze what is on the picture. Picture: '"
+    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
 
-
-
-    picture_description_cut = str(picture_description.split("Summary:")[-1])
+    picture_description_cut = str(picture_description.split("summary:")[-1])
     print(f"\npicture_description_cut!!!!!!!!!!!!\n{picture_description_cut}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
 
     picture_description_cut2 = str(picture_description_cut.split("\n")[0]).strip()
     print(f"\npicture_description_cut2!!!!!!!!!!!!\n{picture_description_cut2}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-
-
 
 #    picture_description_split = picture_description.split("**")
 #    print(f"\npicture_description_split!!!!!!!!!!!!\n{picture_description_split}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
@@ -233,14 +233,16 @@ async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> No
     await emoji_message.delete()
     await message.answer_photo(result_image, "OpenDalleV1_1\n" + picture_description_cut2[:980])
 
-    result_image_path   = await playground_v2_1024px_aesthetic(prompt =  picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image_path   = await animagine_xl_2_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+#    result_image_path   = await stable_diffusion_xl_base_1_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image        = FSInputFile(result_image_path)
+#    await emoji_message.delete()
+    await message.answer_photo(result_image, "animagine_xl_2_0")
+
+    result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
 #    await emoji_message.delete()
     await message.answer_photo(result_image, "playground_v2_1024px_aesthetic")
 
-    result_image_path   = await stable_diffusion_xl_base_1_0(prompt = "hentai " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-    result_image        = FSInputFile(result_image_path)
-#    await emoji_message.delete()
-    await message.answer_photo(result_image, "stable_diffusion_xl_base_1_0")
 
     await main_menu(message, state)

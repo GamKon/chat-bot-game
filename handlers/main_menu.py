@@ -26,9 +26,8 @@ router = Router()
 #@router.message(CommandHelp())
 async def command_start( message: Message, state: FSMContext ) -> None:
     await state.set_state( UIStates.chat )
+    # Set status to default
     # data = await state.update_data(is_thinking = False)
-    # print("-----------------!!!!!!!-!!!!!!!START!!!!DATA\n")
-    # print(data)
     try:
         # Check if user exists in DB
         result = await show_user(user_id = message.from_user.id)
@@ -40,10 +39,10 @@ async def command_start( message: Message, state: FSMContext ) -> None:
                                     last_name   = message.from_user.last_name,
                                     username    = message.from_user.username,
                                     language    = "English",
-                                    model_id    = 2)
+                                    model_id    = 1)
             print(f"User: {message.from_user.username} added to DB")
             await add_default_user_prompts(user_id = message.from_user.id)
-        content = Text("Hello, ", Bold(message.from_user.first_name), "!\n\nI'm a chatbot that can talk to you in different roles. You can give me any personality you like.")
+        content = Text("Hello, ", Bold(message.from_user.first_name), "!\n\nI'm a chatbot that can talk to you in different roles. You can give me any personality you like. I can hear voice messages too.")
         await message.answer(**content.as_kwargs())
 
         # Get detailed user status
@@ -52,9 +51,6 @@ async def command_start( message: Message, state: FSMContext ) -> None:
             await pin_user_settings(message)
             await main_menu(message, state)
         else:
-            # print("-----------1")
-            # await add_default_user_prompts(user_id = message.from_user.id)
-            # print("-----------1")
             print("Error! User has no status")
             raise Exception("User has no status")
 
@@ -64,13 +60,11 @@ async def command_start( message: Message, state: FSMContext ) -> None:
         await message.answer("⛔ Something went wrong, please try again later", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
         return
 
-    #await main_menu(message, state)
-
 ##########################################################################################################################################################
 # Main menu
 async def main_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(UIStates.chat)
-    await message.answer("<i>Talk to me </i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
+    await message.answer("<i>What's next?</i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
 ##########################################################################################################################################################
 # Chat Menu
 @router.message(Command("menu"))
@@ -99,7 +93,6 @@ async def chat_menu(message: Message, state: FSMContext) -> None:
 @router.message(UIStates.edit_system_prompt_username,   F.text.casefold() == "❌ cancel")
 @router.message(UIStates.edit_system_prompt_ai_name,    F.text.casefold() == "❌ cancel")
 @router.message(UIStates.edit_system_prompt_save_name,  F.text.casefold() == "❌ cancel")
-
 async def cancel_handler(message: Message, state: FSMContext) -> None:
     await state.set_state( UIStates.chat )
     await message.answer("<i>Canceled</i>", reply_markup = get_chat_kb(),parse_mode = "HTML")

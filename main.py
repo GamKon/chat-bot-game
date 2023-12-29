@@ -38,9 +38,6 @@ async def main():
     dp  = Dispatcher()
     dp.include_routers(router, media.router, main_menu.router, chat_menu.router, system_menu.router, ai.router)
 
-#    dp.message.middleware(ai.ai_middleware)
-#asgiref.sync.sync_to_async
-
 # sync_to_async
     await bot.delete_webhook(drop_pending_updates=True)
 
