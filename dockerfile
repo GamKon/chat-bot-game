@@ -56,6 +56,9 @@ COPY ./classes.py ./
 COPY ./templating.py ./
 COPY ./utility.py ./
 
+# RUN chown -R user:user /app
+# RUN chown -R user:user /home/user
+
 USER user
 RUN mkdir -p /home/user/.cache/huggingface
 RUN mkdir -p /home/user/.cache/torch/kernels

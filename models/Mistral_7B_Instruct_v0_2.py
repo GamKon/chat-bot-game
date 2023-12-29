@@ -1,13 +1,17 @@
-# https://huggingface.co/TheBloke/dolphin-2_2-yi-34b-AWQ
+#https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer#, YiTokenizer, YiModel
-import re
-async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
+from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
+
+async def Mistral_7B_Instruct_pipe(prompt_to_llm: str, max_new_tokens: int):
 
     if max_new_tokens <= 20 and max_new_tokens >= 2048: max_new_tokens = 256
+    print("1----------------------------------------------prompt TO AWQ Mistral 7b-----------------------------------------")
+    print(prompt_to_llm)
+    print("2---------------------------------------------------------------------------------------------------------------")
 
-    #model_name_or_path = "TheBloke/dolphin-2_2-yi-34b-AWQ"
-    model_name_or_path = "TheBloke/dolphin-2.2-yi-34b-200k-AWQ"
+
+    model_name_or_path = "mistralai/Mistral-7B-Instruct-v0.2"
+
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_name_or_path,
@@ -19,14 +23,8 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
     # # Using the text streamer to stream output one token at a time
     # streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
 
-
-# !!!!!!
     # prompt = "Tell me about AI"
-    # prompt_template=f'''<|im_start|>system
-    # {system_message}<|im_end|>
-    # <|im_start|>user
-    # {prompt}<|im_end|>
-    # <|im_start|>assistant
+    # prompt_template=f'''<s>[INST] {prompt} [/INST]
     # '''
 
     prompt_template = prompt_to_llm
@@ -46,7 +44,7 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
         "repetition_penalty": 1.1
     }
 
-    # Generate streamed output, visible one token at a time
+    # # Generate streamed output, visible one token at a time
     # generation_output = model.generate(
     #     tokens,
     #     streamer=streamer,
@@ -64,21 +62,6 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
     # text_output = tokenizer.decode(token_output)
     # print("model.generate output: ", text_output)
 
-    # # string
-    # llm_reply_full = tokenizer.decode(output[0])
-
-    # llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
-
-    # print("3----------------------------------------------raw output FROM AWQ_Dolphin-----------------------------------------------------")
-    # print(llm_reply_full)
-    # print("4-splitted--------------------------------------------------------------------------------------------------------------")
-    # print(llm_reply)
-    # print("5---------------------------------------------------------------------------------------------------------------")
-    # return str(llm_reply)
-
-
-
-
     # Inference is also possible via Transformers' pipeline
     from transformers import pipeline
 
@@ -92,11 +75,10 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
     pipe_output = pipe(prompt_template)[0]['generated_text']
     #print("pipeline output: ", pipe_output)
 
-
-    llm_reply = pipe_output.split('<|im_start|>')[-1]
-    print("3----------------------------------------------raw output FROM AWQ_Dolphin pipe-----------------------------------------------------")
+    llm_reply = str(pipe_output.split('[/INST] ')[-1]).split('</s>')[0]
+    print("3----------------------------------------------RAW output FROM AWQ Mistral 7B-----------------------------------")
     print(pipe_output)
-    print("4-splitted--------------------------------------------------------------------------------------------------------------")
+    print("4---------------------------------------------SPLIT output FROM AWQ Mistral 7B----------------------------------")
     print(llm_reply)
     print("5---------------------------------------------------------------------------------------------------------------")
     return str(llm_reply)

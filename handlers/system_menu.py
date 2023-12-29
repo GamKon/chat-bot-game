@@ -35,12 +35,12 @@ async def sys_change_chat_persona(message: Message, state: FSMContext) -> None:
                             f" <b>{user_settings[0]}</b>\n" +
                             html.code("Model:") +
                             f" <b>{user_settings[1]}</b>\n" +
-                            html.code("personality:") +
+                            html.code("Personality:") +
                             html.pre(f"{user_settings[2]}") +
-                            f"\n" + html.code("Bot name:") +
-                            f"   <b>{user_settings[4]}</b>\n" +
-                            html.code("Your name:") +
-                            f" <b>{user_settings[3]}</b>",
+                            f"\n" + html.code("Bot  name: ") +
+                            f"<b>{user_settings[4]}</b>\n" +
+                            html.code("Your name: ") +
+                            f"<b>{user_settings[3]}</b>",
                             parse_mode=ParseMode.HTML)
 
 

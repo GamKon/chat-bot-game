@@ -58,7 +58,7 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
 
         prompt_to_llm.append({"role": "system", "content": system_role_prompt[0]})
         for prompt in messages_history:
-            prompt_to_llm.append({"role": prompt[0], "content": prompt[1]})
+            prompt_to_llm.append({"role": "assistant", "content": prompt[1]})
         prompt_to_llm.append({"role": "user", "content": message_to_llm})
     # print("----------------------------------------------prompt_to_llm after TEMPLATING-----------------------------------------------------")
     # print(prompt_to_llm)

@@ -15,12 +15,12 @@ async def pin_user_settings(message: Message) -> None:
                                                  f" <b>{user_settings[0]}</b>\n" +
                                                  html.code("Model:") +
                                                  f" <b>{user_settings[1]}</b>\n" +
-                                                 html.code("personality:") +
+                                                 html.code("Personality:") +
                                                  html.pre(f"{user_settings[2]}") +
-                                                 f"\n" + html.code("Bot name:") +
-                                                 f"   <b>{user_settings[4]}</b>\n" +
-                                                 html.code("Your name:") +
-                                                 f" <b>{user_settings[3]}</b>",
+                                                 f"\n" + html.code("Bot  name: ") +
+                                                 f"<b>{user_settings[4]}</b>\n" +
+                                                 html.code("Your name: ") +
+                                                 f"<b>{user_settings[3]}</b>",
                                                  parse_mode=ParseMode.HTML)
     await bot.unpin_all_chat_messages(message.chat.id)
     await bot.pin_chat_message(message.chat.id, user_settings_message.message_id, disable_notification = True)

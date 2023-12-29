@@ -1,6 +1,6 @@
 from time import sleep
 from aiogram import Router, html
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
 # from aiogram.enums.chat_action import ChatAction
@@ -12,8 +12,14 @@ from models.GPTQ_Mixtral_8x7B_Instruct_v0_1 import GPTQ_Mixtral_8x7B_Instruct, G
 from models.AWQ_dolphin_2_2_yi_34b          import AWQ_Dolphin_2_2_yi_34b_pipe
 from models.AWQ_Mixtral_8x7B_Instruct_v0_1  import AWQ_Mixtral_8x7B_Instruct_pipe, AWQ_Mixtral_8x7B_Instruct
 from models.AWQ_Mistral_7B_Instruct_v0_2    import AWQ_Mistral_7B_Instruct_pipe
+from models.Mistral_7B_Instruct_v0_2        import Mistral_7B_Instruct_pipe
 from models.GPTQ_Wizard_Vicuna_13B_Uncensored_SuperHOT_8K import GPTQ_Wizard_Vicuna_13B
-from models.openai_chatgpt import gpt_3_5_turbo_1106
+from models.openai_chatgpt                  import gpt_3_5_turbo_1106
+from models.playgroundai                    import playground_v2_1024px_aesthetic
+from models.OpenDalleV1_1                   import OpenDalleV1_1
+from models.stable_diffusion                import stable_diffusion_xl_base_1_0
+
+from handlers.main_menu             import main_menu
 
 from classes import UIStates, bot
 from db.queries import *
@@ -33,7 +39,7 @@ router = Router()
 @router.message(UIStates.chat)
 async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str = "") -> None:
 
-    # Try to stop accepting messages while LLM is thinking
+    # #Try to stop accepting messages while LLM is thinking
     # data = await state.get_data()
     # print("-----------------!!!!!!!-BEGIN-!!!!-DATA\n")
     # print(data)
@@ -44,9 +50,9 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # if data["is_thinking"]:
     #     await message.reply("I'm still thinking at the first question, please be patient")
     #     return
-    # ???
+    # # ???
 
-    bot_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
+    emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
     current_user_model = await select_user_llm_model(message.from_user.id)
 
     # Set maximum answer length max_new_tokens
@@ -98,7 +104,13 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                     # print("-----------------!!!!!!!-!!!!!!BEFORE!!!!!DATA\n")
                     # print(data)
 
+                    # AWQ quantized
                     llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
+
+                    # Original
+#                    llm_answer = await Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
+
+
                     #llm_answer = await Mistral_7B_Instruct_pipeline(prompt_to_llm)
                     #llm_answer = await Mistral_7B_Instruct(prompt_to_llm)
 
@@ -108,6 +120,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 ###########################################
                 # Mixtral-8x7B-Instruct
                 elif current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ":
+                    # GPTQ quantized
                     llm_answer = await GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm, max_new_tokens)
                 ###########################################
                 # Dolphin-2_2-yi-34b-AWQ
@@ -151,8 +164,10 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                     #llm_answer = await GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm)
 
                 else:
-                    llm_answer = "Error! No model selected\n" + str(current_user_model)
-                    await bot_message.edit_text(llm_answer)
+                    await emoji_message.delete()
+                    await message.answer("Error! No model selected\n" + str(current_user_model))
+#                    llm_answer = "Error! No model selected\n" + str(current_user_model)
+                    #await emoji_message.edit_text(llm_answer)
                     return
                 break
             except (ValueError, RuntimeError) as e:
@@ -163,12 +178,69 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                     await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
                     return
                 sleep(6)
+    # Remove AI name from answer if any
+    if current_user_system_prompt[2] != "":
+        llm_answer = str(llm_answer.split(f"{current_user_system_prompt[2]}:",1)[-1]).lstrip()
+        print(f"\n!!! split {current_user_system_prompt[2]} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                                     #(f"{current_user_system_prompt[2]}:")[-1])
+
     # Save to DB
     await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm)
     await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer)
-    await bot_message.delete()
+    await emoji_message.delete()
 #    await message.edit_text("💡")
     #await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
     await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
+    print(f"current_user_system_prompt[4].lower()!!!!!!!!!!!!\n{current_user_system_prompt[4].lower()}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # Illustrate if 'game' in Model.name
+    if 'game' in current_user_system_prompt[4].lower():
+        print("!!--- Gonna Illustrate ---!!")
+        await illustrate(message, state, llm_answer)
 
 ##########################################################################################################################################################
+
+##########################################################################################################################################################
+# Illustrate the answer
+async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
+    max_new_tokens      = 128
+    num_inference_steps = 70
+    emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
+    #description_prompt  =
+    # "Short 77 tokens summarise what is on this picture. Start with {who is on the picture} continue with {what are they doing} and finish with {where it is}. Mark beginning and end with two asterisks. The picture description start: **{"
+    description_prompt  = "Give me very short 65 words summary who is on this picture and what is happening: '"
+    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Summary:", max_new_tokens)
+
+
+
+    picture_description_cut = str(picture_description.split("Summary:")[-1])
+    print(f"\npicture_description_cut!!!!!!!!!!!!\n{picture_description_cut}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+
+    picture_description_cut2 = str(picture_description_cut.split("\n")[0]).strip()
+    print(f"\npicture_description_cut2!!!!!!!!!!!!\n{picture_description_cut2}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+
+
+
+#    picture_description_split = picture_description.split("**")
+#    print(f"\npicture_description_split!!!!!!!!!!!!\n{picture_description_split}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+#    while len(picture_description_split[-1]) < 10:
+#        picture_description_split.pop(-1)
+#    picture_description_split_2 = picture_description_split[-1]
+#    print(f"\npicture_description_split_2!!!!!!!!!!!!\n{picture_description_split_2}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+    # playground accepts only 77 tokens
+
+    result_image_path   = await OpenDalleV1_1(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image        = FSInputFile(result_image_path)
+    await emoji_message.delete()
+    await message.answer_photo(result_image, "OpenDalleV1_1\n" + picture_description_cut2[:980])
+
+    result_image_path   = await playground_v2_1024px_aesthetic(prompt =  picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image        = FSInputFile(result_image_path)
+#    await emoji_message.delete()
+    await message.answer_photo(result_image, "playground_v2_1024px_aesthetic")
+
+    result_image_path   = await stable_diffusion_xl_base_1_0(prompt = "hentai " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image        = FSInputFile(result_image_path)
+#    await emoji_message.delete()
+    await message.answer_photo(result_image, "stable_diffusion_xl_base_1_0")
+
+    await main_menu(message, state)

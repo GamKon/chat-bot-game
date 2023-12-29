@@ -10,17 +10,17 @@ from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
 
 #from classes import UIStates
-from handlers import main_menu, chat_menu, system_menu, ai
+from handlers import main_menu, chat_menu, system_menu, ai, media
 #from db.init_db import create_all_tables
 
 from db.init_db import create_all_tables
 
 async def on_start():
 #    await create_all_tables()
-    print('Starting')
+    print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Starting\n')
 
 async def on_shutdown():
-    print('Shutdown')
+    print('\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Shutdown\n')
 #     await bot.close()
 #     await db_pool.close()
 
@@ -36,8 +36,12 @@ router = Router()
 async def main():
 #    bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
     dp  = Dispatcher()
-    dp.include_routers(router, main_menu.router, chat_menu.router, system_menu.router, ai.router)
+    dp.include_routers(router, media.router, main_menu.router, chat_menu.router, system_menu.router, ai.router)
 
+#    dp.message.middleware(ai.ai_middleware)
+#asgiref.sync.sync_to_async
+
+# sync_to_async
     await bot.delete_webhook(drop_pending_updates=True)
 
 # ??? NOT working on_startup, on_shutdown calls

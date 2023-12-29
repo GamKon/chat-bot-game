@@ -25,3 +25,7 @@ class UIStates(StatesGroup):
     edit_system_prompt_ai_name   = State()
     edit_system_prompt_save_name = State()
     edit_max_answer_length       = State()
+    generate_image1              = State()
+    generate_image2              = State()
+    generate_image3              = State()
+    summarize_text               = State()
