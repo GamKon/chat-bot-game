@@ -172,8 +172,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 #                 #await emoji_message.edit_text(llm_answer)
 #                 return
             break
-        except Exception as e:
-#        except  as e:
+        except (RuntimeError, TypeError, NameError, ValueError) as e:
             # Print error message
             if i < 6:
                 await message.answer("Still thinking...\n" + str(e) + "\nRetry #"+str(i))
@@ -181,6 +180,9 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
                 return
             sleep(6)
+        except Exception as e:
+            await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
+            return
     # Remove AI name from answer if any
     # if current_user_system_prompt[2] != "":
     #     llm_answer = str(llm_answer.split(f"{current_user_system_prompt[2]}:",1)[-1]).lstrip()
