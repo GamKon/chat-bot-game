@@ -9,6 +9,8 @@ from handlers.main_menu             import main_menu
 from keyboards.keyboards            import *
 from models.openai_whisper_large_v3 import openai_whisper_large_v3
 from handlers.ai                    import send_to_llm
+from utility                        import debug_print
+from models.llm                     import llm_answer_from_model
 
 from models.playgroundai            import playground_v2_1024px_aesthetic
 from models.OpenDalleV1_1           import OpenDalleV1_1
@@ -57,7 +59,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         await state.set_state( UIStates.chat )
         emoji_message = await message.answer("🎨", reply_markup = get_chat_kb())
-        num_inference_steps = 70
+        num_inference_steps = 60
         result_image_path = await OpenDalleV1_1(prompt = message.text, file_path="data/generated_images", n_steps=num_inference_steps)
         result_image = FSInputFile(result_image_path)
         await emoji_message.delete()
@@ -75,7 +77,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         await state.set_state( UIStates.chat )
         emoji_message = await message.answer("🎨", reply_markup = get_chat_kb())
-        num_inference_steps = 70
+        num_inference_steps = 60
         result_image_path = await playground_v2_1024px_aesthetic(prompt = message.text, file_path="data/generated_images", n_steps=num_inference_steps)
         result_image = FSInputFile(result_image_path)
         await emoji_message.delete()
@@ -93,7 +95,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         await state.set_state( UIStates.chat )
         emoji_message = await message.answer("🎨", reply_markup = get_chat_kb())
-        num_inference_steps = 70
+        num_inference_steps = 60
         result_image_path = await stable_diffusion_xl_base_refiner_1_0(prompt = message.text, file_path="data/generated_images", n_steps=num_inference_steps)
         result_image = FSInputFile(result_image_path)
         await emoji_message.delete()
@@ -110,9 +112,11 @@ async def generate_image(message: Message, state: FSMContext) -> None:
 async def generate_image(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         emoji_message = await message.answer("✍️", reply_markup = get_chat_kb())
-        message_to_llm = f"Summarise this in one sentence: '{message.text}'"
+        message_to_llm = f"Summarise this: '{message.text}'. Summary:"
         print(f"message.text to summarize:\n{message_to_llm.strip()}")
-        summary = await AWQ_Mistral_7B_Instruct_pipe(message_to_llm, max_new_tokens=128)
+        summary = await llm_answer_from_model(message_to_llm,
+                                                ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
+                                                max_new_tokens=128)
         #await send_to_llm(message, state, message_to_llm.strip())
         await emoji_message.delete()
 

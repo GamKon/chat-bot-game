@@ -21,7 +21,6 @@ async def playground_v2_1024px_aesthetic(prompt: str, file_path, n_steps: int):
                 num_inference_steps=n_steps,
                 guidance_scale=3.0).images[0]
 
-
     # print(image)
     # print(type(image))
     # image.save("test.png")

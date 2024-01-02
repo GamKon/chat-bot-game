@@ -30,10 +30,10 @@ async def AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm: str, max_new_tokens: int):
     prompt_template = prompt_to_llm
 
     # Convert prompt to tokens
-    tokens = tokenizer(
-        prompt_template,
-        return_tensors='pt'
-    ).input_ids.cuda()
+    # tokens = tokenizer(
+    #     prompt_template,
+    #     return_tensors='pt'
+    # ).input_ids.cuda()
 
     generation_params = {
         "do_sample": True,

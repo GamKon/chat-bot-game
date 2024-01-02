@@ -17,9 +17,28 @@ router = Router()
 ##########################################################################################################################################################
 
 ##########################################################################################################################################################
+# Repear last question
+@router.message(Command("repeat"))
+@router.message(UIStates.menu, F.text.casefold() == "🔁 repeat last")
+async def chat_repeat_question(message: Message, state: FSMContext) -> None:
+    try:
+        # Get user's last question from DB
+        last_question = await select_last_question(user_id = message.from_user.id)
+        # Delete last dialogue from DB
+        await delete_last_two_messages(user_id = message.from_user.id)
+        # Send last question to LLM
+# TODO make another def to call send_to_llm from anywhere
+        await state.set_state( UIStates.confirm_send_transcript )
+        await send_to_llm(message, state, last_question[0])
+#        await message.answer("<i>Let me think again...</i>", reply_markup=get_chat_kb(), parse_mode="HTML")
+    except (TypeError) as e:
+        await message.answer("<i>Chat is empty </i>🤐", reply_markup=get_chat_kb(), parse_mode="HTML")
+    await state.set_state( UIStates.chat )
+
+##########################################################################################################################################################
 # Clear last dialogue
 @router.message(Command("clear"))
-@router.message(UIStates.menu, F.text.casefold() == "✏️ clear last dialogue")
+@router.message(UIStates.menu, F.text.casefold() == "✏️ clear last")
 async def chat_clear_last_dialog(message: Message, state: FSMContext) -> None:
     try:
         await delete_last_two_messages(user_id = message.from_user.id)

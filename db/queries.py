@@ -80,6 +80,12 @@ async def add_message(user_id, author, content):
                 content     = content,
             ))
 ##########################################################################################################################################################
+# Select last User question
+async def select_last_question(user_id):
+    async with engine.begin() as conn:
+        result = await conn.execute(select(Message.content).where(Message.user_id == user_id, Message.author == "user").order_by(Message.id.desc()))
+    return result.first()
+##########################################################################################################################################################
 # Delete last user message
 async def delete_last_message(user_id):
     async with engine.begin() as conn:

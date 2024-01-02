@@ -5,6 +5,9 @@ import re
 async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
 
     if max_new_tokens <= 20 and max_new_tokens >= 2048: max_new_tokens = 256
+    print("1----------------------------------------------prompt TO TheBloke/dolphin-2_2-yi-34b-AWQ-----------------------------------------")
+    print(prompt_to_llm)
+    print("2---------------------------------------------------------------------------------------------------------------")
 
     #model_name_or_path = "TheBloke/dolphin-2_2-yi-34b-AWQ"
     model_name_or_path = "TheBloke/dolphin-2.2-yi-34b-200k-AWQ"
@@ -69,7 +72,7 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
 
     # llm_reply = str(llm_reply_full.split('[/INST] ')[-1]).split('</s>')[0]
 
-    # print("3----------------------------------------------raw output FROM AWQ_Dolphin-----------------------------------------------------")
+    # print("3----------------------------------------------raw output FROM TheBloke/dolphin-2_2-yi-34b-AWQ-----------------------------------------------------")
     # print(llm_reply_full)
     # print("4-splitted--------------------------------------------------------------------------------------------------------------")
     # print(llm_reply)
@@ -94,7 +97,7 @@ async def AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm: str, max_new_tokens: int):
 
 
     llm_reply = pipe_output.split('<|im_start|>')[-1]
-    print("3----------------------------------------------raw output FROM AWQ_Dolphin pipe-----------------------------------------------------")
+    print("3----------------------------------------------raw output FROM TheBloke/dolphin-2_2-yi-34b-AWQ pipe-----------------------------------------------------")
     print(pipe_output)
     print("4-splitted--------------------------------------------------------------------------------------------------------------")
     print(llm_reply)

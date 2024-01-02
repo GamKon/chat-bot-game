@@ -6,13 +6,21 @@ from aiogram.utils.chat_action import ChatActionSender
 # from aiogram.enums.chat_action import ChatAction
 # from aiogram.methods import SendChatAction
 #from aiogram import Bot
+from utility import debug_print
+from models.llm import llm_answer_from_model
 
 from models.GPTQ_Mistral_7B_Instruct_v0_2   import Mistral_7B_Instruct, Mistral_7B_Instruct_pipeline
 from models.GPTQ_Mixtral_8x7B_Instruct_v0_1 import GPTQ_Mixtral_8x7B_Instruct, GPTQ_Mixtral_8x7B_Instruct_pipeline
 from models.AWQ_dolphin_2_2_yi_34b          import AWQ_Dolphin_2_2_yi_34b_pipe
 from models.AWQ_Mixtral_8x7B_Instruct_v0_1  import AWQ_Mixtral_8x7B_Instruct_pipe, AWQ_Mixtral_8x7B_Instruct
 from models.AWQ_Mistral_7B_Instruct_v0_2    import AWQ_Mistral_7B_Instruct_pipe
+from models.AWQ_Guanaco_13B                 import AWQ_Guanaco_13B_Uncensored_AWQ, AWQ_Guanaco_13B_Uncensored_AWQ_pipe
 from models.Mistral_7B_Instruct_v0_2        import Mistral_7B_Instruct_pipe
+from models.AWQ_LLaMA2_13B_Psyfighter2      import AWQ_LLaMA2_13B_Psyfighter2
+from models.AWQ_LLaMA2_13B_Tiefighter       import AWQ_LLaMA2_13B_Tiefighter
+from models.Aurora_Nights_70B_v1_0_AWQ      import AWQ_Aurora_Nights_70B_v1_0, AWQ_Aurora_Nights_70B_v1_0_pipe
+from models.WizardLM_33B_V1_0_AWQ           import WizardLM_33B_V1_0_AWQ, WizardLM_33B_V1_0_AWQ_pipe
+from models.Pygmalion_2_13B_AWQ             import Pygmalion_2_13B_AWQ
 from models.openai_chatgpt                  import gpt_3_5_turbo_1106
 from models.playgroundai                    import playground_v2_1024px_aesthetic
 from models.OpenDalleV1_1                   import OpenDalleV1_1
@@ -44,8 +52,6 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # asgiref.sync.sync_to_async
     # #Try to stop accepting messages while LLM is thinking
     # data = await state.get_data()
-    # print("-----------------!!!!!!!-BEGIN-!!!!-DATA\n")
-    # print(data)
     # if "is_thinking" not in data:
     #     data = await state.update_data(is_thinking = False)
     # else:
@@ -54,140 +60,142 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     #     await message.reply("I'm still thinking at the first question, please be patient")
     #     return
 
+    # Emoji "Thinking..."
     emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
     current_user_model = await select_user_llm_model(message.from_user.id)
 
     # Set maximum answer length max_new_tokens
-    #try:
-        #data = await state.get_data()
-    current_persona = await select_system_prompt(user_id = message.from_user.id)
-    max_new_tokens = current_persona[5]
-        # if "max_new_tokens" in data and data["max_new_tokens"] >= 20 and data["max_new_tokens"] <= 2048:
-        #     max_new_tokens = data["max_new_tokens"]
-        #     print(f"\n\nmax_new_tokens from context data= {max_new_tokens}\n\n")
-        # elif current_user_model[3] >= 20 and current_user_model[3] <= 2048:
-        #     max_new_tokens = current_user_model[3]
-        #     print(f"\n\nmax_new_tokens from Model table = {max_new_tokens}\n\n")
-    #     else:
-    #         max_new_tokens = 256
-    #         print(f"\n\nmax_new_tokens from default = {max_new_tokens}\n\n")
-    # except:
-    #     print("\n\nmax_new_tokens error, defaulting to 256\n\n")
-    #     max_new_tokens = 256
+    current_user_system_prompt = await select_system_prompt(user_id = message.from_user.id)
+    max_new_tokens = current_user_system_prompt[5]
+    if max_new_tokens <= 20 and max_new_tokens >= 2048:
+        debug_print("Defaulting max_new_tokens to 256, in DB it's out of range:", max_new_tokens)
+        max_new_tokens = 256
 
-    # Status "Typing..."
-    async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
-        ###########################################################
-        # Prepare prompt for LLM
-        # make messages list from DB in STRING format
-        # Set what names to template as "user" and "assistant" roles
-        current_user_system_prompt = await select_system_prompt(message.from_user.id)
-# roles = [current_user_system_prompt[1], current_user_system_prompt[2]]
-        #roles = ["", ""]
-        # template to model table
+    # Set status "Typing..."
+    #async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
 
-        current_state = await state.get_state()
-        print(f"current_state!!!!!!!!!!!!{current_state}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        if current_state == "UIStates:confirm_send_transcript":
-            message_to_llm = message_to_llm
-        else:
-            message_to_llm = message.text
-        print(f"message_to_llm!!!!!!!!!!!!{message_to_llm}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2])#, roles = roles)
+    ###########################################################
+    # Get User input
+    # TODO make seperate function instead of checking for 'state' if coming from voice transcript Whisper
+    current_state = await state.get_state()
+    if current_state == "UIStates:confirm_send_transcript":
+        message_to_llm = message_to_llm
+    else:
+        message_to_llm = message.text
+    debug_print("User input before templating: message_to_llm", message_to_llm)
 
-        ###########################################################
-        # Send prompt to LLM
-        # 5 tries to handle model Errors
-        for i in range(1, 7):
-            try:
-                ###########################################
-                # Mistral_7B_Instruct
-                if current_user_model[0] == "TheBloke/Mistral-7B-Instruct-v0.2-GPTQ":
-                    # Try to stop accepting messages while LLM is thinking
-                    # data = await state.update_data(is_thinking = True)
-                    # print("-----------------!!!!!!!-!!!!!!BEFORE!!!!!DATA\n")
-                    # print(data)
+    # Template whole string to send depending on format
+    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2])
 
-                    # AWQ quantized
-                    llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
+    ###########################################################
+    # Prepare prompt for LLM
+    # make messages list from DB in STRING format
 
-                    # Original
-#                    llm_answer = await Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
+    ###########################################################
+    # Send prompt to LLM
+    # 5 tries to handle recoverable model Errors
+    for i in range(1, 7):
+        try:
+                # Stop accepting messages while LLM is thinking
+                # data = await state.update_data(is_thinking = True)
+                # TODO Use Sync to Async wrapper to avoid blocking
 
-
-                    #llm_answer = await Mistral_7B_Instruct_pipeline(prompt_to_llm)
-                    #llm_answer = await Mistral_7B_Instruct(prompt_to_llm)
-
-                    # data = await state.update_data(is_thinking = False)
-                    # print("-----------------!!!!!!!-!!!!!!AFTER!!!!!DATA\n")
-                    # print(data)
-                ###########################################
-                # Mixtral-8x7B-Instruct
-                elif current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ":
-                    # GPTQ quantized
-                    llm_answer = await GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm, max_new_tokens)
-                ###########################################
-                # Dolphin-2_2-yi-34b-AWQ
-                elif current_user_model[0] == "TheBloke/dolphin-2_2-yi-34b-AWQ":
-                    print("!!!current_user_model[2]!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    print(current_user_model[2])
-
-                    llm_answer = await AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm, max_new_tokens)
-                    print("!!! llm_answer !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    print(f"--{llm_answer}--")
-
-                    # Remove LLM role name from answer
-                    if current_user_system_prompt[2] != "":
-                        llm_answer = str(llm_answer.splitlines()[-1])
-                                         #(f"{current_user_system_prompt[2]}:")[-1])
-
-                    print("!!!current_user_model[2]!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    print(current_user_system_prompt[2])
-                    print("!!! llm_answer !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    print(f"--{llm_answer}--")
-                ###########################################
-                # Chat-GPT 3.5
-                elif current_user_model[0] == "gpt-3.5-turbo-1106":
-                    llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
+            ###########################################
+            # Get llm_answer from LLM
+ ###           llm_answer = await llm_answer_from_model(prompt_to_llm, current_user_model, current_user_system_prompt, max_new_tokens, message, state)
 
 
 
-                    # Other not working models
+            ###########################################
+            # Mistral_7B_Instruct
+            if  (current_user_model[0] == "TheBloke/Mistral-7B-Instruct-v0.2-AWQ") or \
+                (current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ") or \
+                (current_user_model[0] == "TheBloke/dolphin-2.2-yi-34b-200k-AWQ") or \
+                (current_user_model[0] == "TheBloke/LLaMA2-13B-Psyfighter2-AWQ") or \
+                (current_user_model[0] == "TheBloke/LLaMA2-13B-Tiefighter-AWQ") or \
+                (current_user_model[0] == "TheBloke/Aurora-Nights-70B-v1.0-AWQ") or \
+                (current_user_model[0] == "TheBloke/WizardLM-33B-V1.0-Uncensored-AWQ") or \
+                (current_user_model[0] == "TheBloke/Pygmalion-2-13B-AWQ"):
+                llm_answer = await llm_answer_from_model(prompt_to_llm,
+                                                         current_user_model,
+#                                                         current_user_system_prompt,
+                                                         max_new_tokens)
+#                                                         message,
+#                                                         state)
+                # llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
+            ###########################################
+            # Mixtral-8x7B-Instruct
+            # elif current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ":
+            #     # GPTQ quantized
+            #     llm_answer = await GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm, max_new_tokens)
+            ###########################################
+            # # Dolphin-2_2-yi-34b-AWQ
+            # elif current_user_model[0] == "TheBloke/dolphin-2_2-yi-34b-AWQ":
+            #     llm_answer = await AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm, max_new_tokens)
+            ###########################################
+            # LLaMA2_13B_Psyfighter2-AWQ
+            # elif current_user_model[0] == "TheBloke/LLaMA2-13B-Psyfighter2-AWQ":
+            #     llm_answer = await AWQ_LLaMA2_13B_Psyfighter2(prompt_to_llm, max_new_tokens)
+            # ###########################################
+            # # LLaMA2_13B_Tiefighter-AWQ
+            # elif current_user_model[0] == "TheBloke/LLaMA2-13B-Tiefighter-AWQ":
+            #     llm_answer = await AWQ_LLaMA2_13B_Tiefighter(prompt_to_llm, max_new_tokens)
+            ###########################################
+            # Aurora-Nights-70B-v1.0-AWQ
+            # elif current_user_model[0] == "TheBloke/Aurora-Nights-70B-v1.0-AWQ":
+            #     llm_answer = await AWQ_Aurora_Nights_70B_v1_0_pipe(prompt_to_llm, max_new_tokens)
+            ###########################################
+            # WizardLM-33B-V1.0-Uncensored-AWQ
+            # elif current_user_model[0] == "TheBloke/WizardLM-33B-V1.0-Uncensored-AWQ":
+            #     llm_answer = await WizardLM_33B_V1_0_AWQ(prompt_to_llm, max_new_tokens)
+            ###########################################
+            # Pygmalion-2-13B-AWQ
+# Start to add user question by itself on long input
+            # elif current_user_model[0] == "TheBloke/Pygmalion-2-13B-AWQ":
+            #     llm_answer = await Pygmalion_2_13B_AWQ(prompt_to_llm, max_new_tokens)
 
-                    # This IS NOT expected if you are initializing MixtralForCausalLM from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
-                    # You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-                    # OC is not multiple of cta_N = 64
-                    # llm_answer = await AWQ_Mixtral_8x7B_Instruct(prompt_to_llm)
-                    # llm_answer = await AWQ_Mixtral_8x7B_Instruct_pipe(prompt_to_llm)
+            ###########################################
+            # Chat-GPT 3.5
+            elif current_user_model[0] == "gpt-3.5-turbo-1106":
+                llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
 
 
-                    # not working "Skipping module injection for FusedLlamaMLPForQuantizedModel as currently not supported with use_triton=False.""
-                    #llm_answer = await GPTQ_Wizard_Vicuna_13B(prompt_to_llm)
 
-                    # TypeError: object str can't be used in 'await' expression
-                    #llm_answer = await GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm)
+                # Other not working models
 
-                else:
-                    await emoji_message.delete()
-                    await message.answer("Error! No model selected\n" + str(current_user_model))
+                # This IS NOT expected if you are initializing MixtralForCausalLM from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+                # You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+                # OC is not multiple of cta_N = 64
+                # llm_answer = await AWQ_Mixtral_8x7B_Instruct(prompt_to_llm)
+                # llm_answer = await AWQ_Mixtral_8x7B_Instruct_pipe(prompt_to_llm)
+
+
+                # not working "Skipping module injection for FusedLlamaMLPForQuantizedModel as currently not supported with use_triton=False.""
+                #llm_answer = await GPTQ_Wizard_Vicuna_13B(prompt_to_llm)
+
+                # TypeError: object str can't be used in 'await' expression
+                #llm_answer = await GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm)
+
+            else:
+                await emoji_message.delete()
+                await message.answer("Error! No model selected\n" + str(current_user_model))
 #                    llm_answer = "Error! No model selected\n" + str(current_user_model)
-                    #await emoji_message.edit_text(llm_answer)
-                    return
-                break
-            except (ValueError, RuntimeError) as e:
-                # Print error message
-                if i < 6:
-                    await message.answer("Still thinking...\n" + str(e) + "\nRetry #"+str(i))
-                else:
-                    await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
-                    return
-                sleep(6)
+                #await emoji_message.edit_text(llm_answer)
+                return
+            break
+        except (ValueError, RuntimeError) as e:
+            # Print error message
+            if i < 6:
+                await message.answer("Still thinking...\n" + str(e) + "\nRetry #"+str(i))
+            else:
+                await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
+                return
+            sleep(6)
     # Remove AI name from answer if any
-    if current_user_system_prompt[2] != "":
-        llm_answer = str(llm_answer.split(f"{current_user_system_prompt[2]}:",1)[-1]).lstrip()
-        print(f"\n!!! split {current_user_system_prompt[2]} !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-                                     #(f"{current_user_system_prompt[2]}:")[-1])
-
+    # if current_user_system_prompt[2] != "":
+    #     llm_answer = str(llm_answer.split(f"{current_user_system_prompt[2]}:",1)[-1]).lstrip()
+    #     debug_print("Splitting AI name from answer", current_user_system_prompt[2])
+    # llm_answer = llm_answer.strip()
     # Save to DB
     await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm)
     await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer)
@@ -195,7 +203,6 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 #    await message.edit_text("💡")
     #await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
     await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
-    print(f"current_user_system_prompt[4].lower()!!!!!!!!!!!!\n{current_user_system_prompt[4].lower()}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
@@ -207,42 +214,52 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 # Illustrate the answer
 async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
     max_new_tokens      = 128
-    num_inference_steps = 90
+    num_inference_steps = 40
+
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
-    #description_prompt  =
-    # "Short 77 tokens summarise what is on this picture. Start with {who is on the picture} continue with {what are they doing} and finish with {where it is}. Mark beginning and end with two asterisks. The picture description start: **{"
+
+    # Summarize llm_answer for picture description
     description_prompt  = "Summaryze what is on the picture. Picture: '"
-    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
+    picture_description = await llm_answer_from_model(description_prompt + llm_answer + "' Very short summary:",
+                                                ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
+                                                max_new_tokens)
+#    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
 
-    picture_description_cut = str(picture_description.split("summary:")[-1])
-    print(f"\npicture_description_cut!!!!!!!!!!!!\n{picture_description_cut}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+    picture_description_cut = str(picture_description.split("\n")[0]).strip()
+    debug_print("Summarized picture description", picture_description_cut)
 
-    picture_description_cut2 = str(picture_description_cut.split("\n")[0]).strip()
-    print(f"\npicture_description_cut2!!!!!!!!!!!!\n{picture_description_cut2}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-
-#    picture_description_split = picture_description.split("**")
-#    print(f"\npicture_description_split!!!!!!!!!!!!\n{picture_description_split}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-#    while len(picture_description_split[-1]) < 10:
-#        picture_description_split.pop(-1)
-#    picture_description_split_2 = picture_description_split[-1]
-#    print(f"\npicture_description_split_2!!!!!!!!!!!!\n{picture_description_split_2}\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
     # playground accepts only 77 tokens
-
-    result_image_path   = await OpenDalleV1_1(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image_path   = await OpenDalleV1_1(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
     await emoji_message.delete()
-    await message.answer_photo(result_image, "OpenDalleV1_1\n" + picture_description_cut2[:980])
+    await message.answer_photo(result_image, picture_description_cut[:980]+"\nOpenDalle V1.1")
 
-    result_image_path   = await animagine_xl_2_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-#    result_image_path   = await stable_diffusion_xl_base_1_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    # Try different styles
+    # result_image_path   = await OpenDalleV1_1(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    # result_image        = FSInputFile(result_image_path)
+    # await message.answer_photo(result_image, "OD drawing")
+
+    # result_image_path   = await OpenDalleV1_1(prompt = "fiction, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    # result_image        = FSInputFile(result_image_path)
+    # await message.answer_photo(result_image, "OD fiction")
+
+#     result_image_path   = await animagine_xl_2_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=80)
+# #    result_image_path   = await stable_diffusion_xl_base_1_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+#     result_image        = FSInputFile(result_image_path)
+# #    await emoji_message.delete()
+#     await message.answer_photo(result_image, "animagine_xl_2_0")
+
+    result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
-#    await emoji_message.delete()
-    await message.answer_photo(result_image, "animagine_xl_2_0")
+    await message.answer_photo(result_image, "Playground V2 aesthetic")
 
-    result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-    result_image        = FSInputFile(result_image_path)
-#    await emoji_message.delete()
-    await message.answer_photo(result_image, "playground_v2_1024px_aesthetic")
+    # Try different styles
+    # result_image_path   = await playground_v2_1024px_aesthetic(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    # result_image        = FSInputFile(result_image_path)
+    # await message.answer_photo(result_image, "pg drawing")
 
+    # result_image_path   = await playground_v2_1024px_aesthetic(prompt = "fiction, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
+    # result_image        = FSInputFile(result_image_path)
+    # await message.answer_photo(result_image, "pg fiction")
 
     await main_menu(message, state)

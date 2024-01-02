@@ -12,6 +12,8 @@ alembic.ini
 *.png
 *.oga
 *.mp3
+*.ogg
+*.wav
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
