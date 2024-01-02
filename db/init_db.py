@@ -25,6 +25,7 @@ class Message(Base):
 
     id              = Column(Integer,    primary_key = True)
     user_id         = Column(BigInteger, nullable    = False)
+    chat_id         = Column(Integer, nullable    = False, unique=True)
     author          = Column(String(64), nullable    = False, unique      = False)
     content         = Column(Text,       unique      = False)
     created_at      = Column(DateTime(timezone=True), default=func.now())
@@ -40,6 +41,7 @@ class User(Base):
     language        = Column(String(64), nullable    = False)
     prompt_id       = Column(Integer,    ForeignKey('prompts.id'), nullable = True)
     model_id        = Column(Integer,    ForeignKey('models.model_id'),  nullable = True)
+    chat_id         = Column(Integer,    ForeignKey('messages.chat_id'), nullable = True)
     created_at      = Column(DateTime(timezone=True), default=func.now())
 
 class Prompt(Base):

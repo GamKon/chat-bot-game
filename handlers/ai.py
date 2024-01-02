@@ -172,7 +172,8 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 #                 #await emoji_message.edit_text(llm_answer)
 #                 return
             break
-        except (ValueError, RuntimeError) as e:
+        except Exception as e:
+#        except  as e:
             # Print error message
             if i < 6:
                 await message.answer("Still thinking...\n" + str(e) + "\nRetry #"+str(i))
@@ -203,12 +204,12 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 # Illustrate the answer
 async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
     max_new_tokens      = 128
-    num_inference_steps = 60
+    num_inference_steps = 70
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
     # Summarize llm_answer for picture description
-    description_prompt  = "Summaryze what is on the picture. Picture: '"
+    description_prompt  = "Summarize who, what doing and where is on the picture. Picture: '"
     picture_description = await llm_answer_from_model(description_prompt + llm_answer + "' Very short summary:",
                                                 ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
                                                 max_new_tokens)
@@ -221,7 +222,7 @@ async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> No
     result_image_path   = await OpenDalleV1_1(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
     await emoji_message.delete()
-    await message.answer_photo(result_image, picture_description_cut[:980]+"\nOpenDalle V1.1")
+    await message.answer_photo(result_image, picture_description_cut[:980])
 
     # Try different styles
     # result_image_path   = await OpenDalleV1_1(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
@@ -240,7 +241,7 @@ async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> No
 
     result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
-    await message.answer_photo(result_image, "Playground V2 aesthetic")
+    await message.answer_photo(result_image)
 
     # Try different styles
     # result_image_path   = await playground_v2_1024px_aesthetic(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)

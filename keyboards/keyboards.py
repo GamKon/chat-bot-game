@@ -14,11 +14,22 @@ def get_chat_options_kb() -> ReplyKeyboardMarkup:
     kb.button( text = "🗒️ Show history" )
     kb.button( text = "🔁 Repeat last" )
     kb.button( text = "✏️ Clear last" )
+    kb.button( text = "📋 Chat #" )
     # kb.button( text = "Repeat question" )
     kb.button( text = "🚧 Clear chat" )
     kb.button( text = "❌ Cancel" )
-    kb.adjust(3,2)
+    kb.adjust(3,3)
     return kb.as_markup(resize_keyboard = True, onetime_keyboard = False, input_field_placeholder = "Choose option")
+
+def get_chat_chat_index_kb() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardBuilder()
+    for i in range(1, 10):
+        kb.button(text=get_emoji_number(i))
+    # kb.button(text="Show")
+#    kb.button(text="✍️ Edit current")
+    kb.button(text="❌ Cancel")
+    kb.adjust(4, 4, 2)
+    return kb.as_markup(resize_keyboard=True, onetime_keyboard=True)
 
 def get_system_options_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()

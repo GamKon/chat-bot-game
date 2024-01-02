@@ -39,7 +39,8 @@ async def command_start( message: Message, state: FSMContext ) -> None:
                                     last_name   = message.from_user.last_name,
                                     username    = message.from_user.username,
                                     language    = "English",
-                                    model_id    = 1)
+                                    model_id    = 1,
+                                    chat_id     = 1)
             print(f"User: {message.from_user.username} added to DB")
             await add_default_user_prompts(user_id = message.from_user.id)
         content = Text("Hello, ", Bold(message.from_user.first_name), "!\n\nI'm a chatbot that can talk to you in different roles. You can give me any personality you like. I can hear voice messages too.")
