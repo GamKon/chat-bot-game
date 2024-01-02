@@ -102,20 +102,12 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
             ###########################################
             # Get llm_answer from LLM
- ###           llm_answer = await llm_answer_from_model(prompt_to_llm, current_user_model, current_user_system_prompt, max_new_tokens, message, state)
-
-
 
             ###########################################
-            # Mistral_7B_Instruct
-            if  (current_user_model[0] == "TheBloke/Mistral-7B-Instruct-v0.2-AWQ") or \
-                (current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ") or \
-                (current_user_model[0] == "TheBloke/dolphin-2.2-yi-34b-200k-AWQ") or \
-                (current_user_model[0] == "TheBloke/LLaMA2-13B-Psyfighter2-AWQ") or \
-                (current_user_model[0] == "TheBloke/LLaMA2-13B-Tiefighter-AWQ") or \
-                (current_user_model[0] == "TheBloke/Aurora-Nights-70B-v1.0-AWQ") or \
-                (current_user_model[0] == "TheBloke/WizardLM-33B-V1.0-Uncensored-AWQ") or \
-                (current_user_model[0] == "TheBloke/Pygmalion-2-13B-AWQ"):
+            # Chat-GPT 3.5
+            if current_user_model[0] == "gpt-3.5-turbo-1106":
+                llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
+            else:
                 llm_answer = await llm_answer_from_model(prompt_to_llm,
                                                          current_user_model,
 #                                                         current_user_system_prompt,
@@ -154,10 +146,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
             # elif current_user_model[0] == "TheBloke/Pygmalion-2-13B-AWQ":
             #     llm_answer = await Pygmalion_2_13B_AWQ(prompt_to_llm, max_new_tokens)
 
-            ###########################################
-            # Chat-GPT 3.5
-            elif current_user_model[0] == "gpt-3.5-turbo-1106":
-                llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
+
 
 
 
@@ -176,12 +165,12 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 # TypeError: object str can't be used in 'await' expression
                 #llm_answer = await GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm)
 
-            else:
-                await emoji_message.delete()
-                await message.answer("Error! No model selected\n" + str(current_user_model))
-#                    llm_answer = "Error! No model selected\n" + str(current_user_model)
-                #await emoji_message.edit_text(llm_answer)
-                return
+#             else:
+#                 await emoji_message.delete()
+#                 await message.answer("Error! No model selected\n" + str(current_user_model))
+# #                    llm_answer = "Error! No model selected\n" + str(current_user_model)
+#                 #await emoji_message.edit_text(llm_answer)
+#                 return
             break
         except (ValueError, RuntimeError) as e:
             # Print error message
@@ -214,7 +203,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 # Illustrate the answer
 async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
     max_new_tokens      = 128
-    num_inference_steps = 40
+    num_inference_steps = 60
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 

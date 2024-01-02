@@ -42,7 +42,7 @@ def get_system_chat_mode_kb() -> ReplyKeyboardMarkup:
 
 def get_system_model_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
-    for i in range(1, 9):
+    for i in range(1, 10):
         kb.button(text=get_emoji_number(i))
     kb.button(text="❌ Cancel")
     kb.adjust(5,4)

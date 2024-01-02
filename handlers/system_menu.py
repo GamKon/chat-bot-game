@@ -247,10 +247,10 @@ async def sys_change_llm_model(message: Message, state: FSMContext) -> None:
 @router.message(UIStates.sys_ai_model)
 async def sys_choose_llm_model(message: Message, state: FSMContext) -> None:
 #    models_available = await select_all_models()
-    if message.text in ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣"]:
+    if message.text in ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]:
         await update_user_llm_model(user_id = message.from_user.id, model_id = get_number_emoji(message.text))
         await pin_user_settings(message)
-    elif message.text in ["1", "2", "3", "4", "5", "6", "7", "8"]:
+    elif message.text in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
         await update_user_llm_model(user_id = message.from_user.id, model_id = int(message.text))
         await pin_user_settings(message)
     elif message.text.casefold() == "35":

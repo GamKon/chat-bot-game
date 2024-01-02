@@ -104,5 +104,5 @@ async def chat_reset(message: Message, state: FSMContext) -> None:
         await message.answer("<i>Cleared ☠️ You may start over.</i>", reply_markup=get_chat_kb(), parse_mode="HTML")
         await state.set_state( UIStates.chat )
     else:
-        await message.answer("👍 Keep going.")
+        await message.answer("👍 Cancel. Keep going.", reply_markup=get_chat_kb())
         await state.set_state( UIStates.chat )

@@ -102,7 +102,7 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
         assistant_role_name = "ASSISTANT: "
 
         # make messages list from DB in STRING format
-        prompt_to_llm = system_role_prompt[0] + "\n"
+        prompt_to_llm = "SYSTEM: " + system_role_prompt[0] + "\n"
         for prompt in messages_history:
             # TODO add custom role names
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
