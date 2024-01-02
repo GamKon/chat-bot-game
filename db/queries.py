@@ -72,48 +72,54 @@ async def user_status(user_id):
 # Get all user messages
 async def select_user_chat_history(user_id):
     async with engine.begin() as conn:
-        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id)).first()
-        result = await conn.execute(select(Message.author, Message.content).where(Message.user_id == user_id, Message.chat_id == current_chat_id[0]).order_by(Message.id.asc()))
+        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
+        user_chat_id = int(current_chat_id.first()[0])
+        result = await conn.execute(select(Message.author, Message.content).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.asc()))
         return result.all()
 ##########################################################################################################################################################
 # Add user message
 async def add_message(user_id, author, content):
     async with engine.begin() as conn:
-        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id)).first()
+        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
+        user_chat_id = int(current_chat_id.first()[0])
         await conn.execute(insert(Message).values(
                 user_id     = user_id,
                 author      = author,
                 content     = content,
-                chat_id    = current_chat_id[0]
+                chat_id     = user_chat_id
             ))
 ##########################################################################################################################################################
 # Select last User question
 async def select_last_question(user_id):
     async with engine.begin() as conn:
-        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id)).first()
-        result = await conn.execute(select(Message.content).where(Message.user_id == user_id, Message.author == "user", Message.chat_id == current_chat_id[0]).order_by(Message.id.desc()))
+        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
+        user_chat_id = int(current_chat_id.first()[0])
+        result = await conn.execute(select(Message.content).where(Message.user_id == user_id, Message.author == "user", Message.chat_id == user_chat_id).order_by(Message.id.desc()))
     return result.first()
 ##########################################################################################################################################################
 # Delete last user message
 async def delete_last_message(user_id):
     async with engine.begin() as conn:
-        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id)).first()
-        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == current_chat_id[0]).order_by(Message.id.desc()))
+        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
+        user_chat_id = int(current_chat_id.first()[0])
+        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.desc()))
         await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
 ##########################################################################################################################################################
 # Delete all user messages
 async def delete_all_messages(user_id):
     async with engine.begin() as conn:
-        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id)).first()
-        await conn.execute(Delete(Message).where(Message.user_id == user_id, Message.chat_id == current_chat_id[0]))
+        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
+        user_chat_id = int(current_chat_id.first()[0])
+        await conn.execute(Delete(Message).where(Message.user_id == user_id, Message.chat_id == user_chat_id))
 ##########################################################################################################################################################
 # Delete last two eser messages
 async def delete_last_two_messages(user_id):
     async with engine.begin() as conn:
-        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id)).first()
-        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == current_chat_id[0]).order_by(Message.id.desc()))
+        current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
+        user_chat_id = int(current_chat_id.first()[0])
+        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.desc()))
         await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
-        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == current_chat_id[0]).order_by(Message.id.desc()))
+        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.desc()))
         await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
 
 ##########################################################################################################################################################

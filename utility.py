@@ -19,7 +19,7 @@ async def pin_user_settings(message: Message) -> None:
                                                  html.pre(f"{user_settings[2]}") +
                                                  f"\n" + html.code("Chat    #: ") +
                                                  f"<b>{user_settings[5]}</b>\n" +
-                                                 f"\n" + html.code("Bot  name: ") +
+                                                 html.code("Bot  name: ") +
                                                  f"<b>{user_settings[4]}</b>\n" +
                                                  html.code("Your name: ") +
                                                  f"<b>{user_settings[3]}</b>",

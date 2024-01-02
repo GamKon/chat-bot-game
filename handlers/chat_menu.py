@@ -113,7 +113,7 @@ async def chat_reset(message: Message, state: FSMContext) -> None:
 ##########################################################################################################################################################
 # Change Chat #
 @router.message(Command("chat"))
-@router.message(UIStates.sys, F.text.casefold() == "📋 chat #")
+@router.message(UIStates.sys, F.text.casefold() == "📋 Choose chat")
 async def chat_change_chat(message: Message, state: FSMContext) -> None:
     # Print current
     current_chat = await select_user_chat_id(user_id = message.from_user.id)

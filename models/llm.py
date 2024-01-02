@@ -55,10 +55,13 @@ async def llm_answer_from_model(prompt_to_llm,
 
     llm_reply_stdout = new_stdout.getvalue()
     debug_print(f"Stdout RAW LLM reply from {current_user_model[0]}", llm_reply_stdout)
+
     length_str = len(str("".join(llm_reply_stdout.splitlines())).strip())
     debug_print("Length_str", length_str)
     if len(str("".join(llm_reply_stdout.splitlines())).strip()) == 0:
         raise Exception("LLM reply is empty")
+
+    return llm_reply_stdout
 
 ##########################################################################################################################################################
     # # Generation without a streamer, which will include the prompt in the output
