@@ -2,7 +2,7 @@ from aiogram import Router, F, html
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.filters import Command
-#from aiogram.enums import ParseMode
+from aiogram.enums import ParseMode
 
 from utility import pin_user_settings, get_number_emoji, get_emoji_number
 from keyboards.keyboards import get_confirm_kb, get_chat_kb, get_chat_chat_index_kb
@@ -25,6 +25,7 @@ async def chat_repeat_question(message: Message, state: FSMContext) -> None:
     try:
         # Get user's last question from DB
         last_question = await select_last_question(user_id = message.from_user.id)
+        await message.answer("<i>Let me think again...</i>\n" + last_question[0], reply_markup=get_chat_kb(), parse_mode="HTML")
         # Delete last dialogue from DB
         await delete_last_two_messages(user_id = message.from_user.id)
         # Send last question to LLM
@@ -113,7 +114,7 @@ async def chat_reset(message: Message, state: FSMContext) -> None:
 ##########################################################################################################################################################
 # Change Chat #
 @router.message(Command("chat"))
-@router.message(UIStates.sys, F.text.casefold() == "📋 Choose chat")
+@router.message(UIStates.menu, F.text.casefold() == "📋 choose chat")
 async def chat_change_chat(message: Message, state: FSMContext) -> None:
     # Print current
     current_chat = await select_user_chat_id(user_id = message.from_user.id)
@@ -122,7 +123,7 @@ async def chat_change_chat(message: Message, state: FSMContext) -> None:
     # models_available = await select_all_chatss()
     list_models = "<i>Choose chat #</i>\n"
     for i in range(9):
-        list_models += f"{html.quote(get_emoji_number(i+1))}, "
+        list_models += f"{html.quote(get_emoji_number(i+1))} "
     await message.answer(list_models, reply_markup = get_chat_chat_index_kb(), parse_mode=ParseMode.HTML)
     await state.set_state( UIStates.chat_user_chat )
 
@@ -132,10 +133,10 @@ async def chat_change_chat(message: Message, state: FSMContext) -> None:
 async def chat_choose_chat(message: Message, state: FSMContext) -> None:
 #    models_available = await select_all_models()
     if message.text in ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]:
-        await update_user_chat(user_id = message.from_user.id, model_id = get_number_emoji(message.text))
+        await update_user_chat(user_id = message.from_user.id, chat_id = get_number_emoji(message.text))
         await pin_user_settings(message)
     elif message.text in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-        await update_user_chat(user_id = message.from_user.id, model_id = int(message.text))
+        await update_user_chat(user_id = message.from_user.id, chat_id = int(message.text))
         await pin_user_settings(message)
     # else:
     #     await message.answer("Canceled", reply_markup = get_chat_kb())

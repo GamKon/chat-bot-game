@@ -28,17 +28,18 @@ def get_chat_chat_index_kb() -> ReplyKeyboardMarkup:
     # kb.button(text="Show")
 #    kb.button(text="✍️ Edit current")
     kb.button(text="❌ Cancel")
-    kb.adjust(4, 4, 2)
+    kb.adjust(5, 5)
     return kb.as_markup(resize_keyboard=True, onetime_keyboard=True)
 
 def get_system_options_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     kb.button(text="💃 AI personality")
     kb.button(text="🤖 AI Model")
+    kb.button(text="✍️ Edit current")
     # kb.button(text="Format")
     # kb.button(text="Language")
     kb.button(text="❌ Cancel")
-    kb.adjust(4)
+    kb.adjust(2, 2)
     return kb.as_markup(resize_keyboard=True, onetime_keyboard=False)
 
 def get_system_chat_mode_kb() -> ReplyKeyboardMarkup:
@@ -46,9 +47,9 @@ def get_system_chat_mode_kb() -> ReplyKeyboardMarkup:
     for i in range(1, 10):
         kb.button(text=get_emoji_number(i))
     # kb.button(text="Show")
-    kb.button(text="✍️ Edit current")
+#    kb.button(text="✍️ Edit current")
     kb.button(text="❌ Cancel")
-    kb.adjust(4, 4, 3)
+    kb.adjust(5, 5)
     return kb.as_markup(resize_keyboard=True, onetime_keyboard=True)
 
 def get_system_model_kb() -> ReplyKeyboardMarkup:
@@ -56,7 +57,7 @@ def get_system_model_kb() -> ReplyKeyboardMarkup:
     for i in range(1, 10):
         kb.button(text=get_emoji_number(i))
     kb.button(text="❌ Cancel")
-    kb.adjust(5,4)
+    kb.adjust(5, 5)
     return kb.as_markup(resize_keyboard=True, onetime_keyboard=False)
 
 def get_confirm_kb() -> ReplyKeyboardMarkup:

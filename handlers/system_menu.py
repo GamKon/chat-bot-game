@@ -29,19 +29,20 @@ router = Router()
 async def sys_change_chat_persona(message: Message, state: FSMContext) -> None:
     # current_persona = await select_system_prompt(user_id = message.from_user.id)
     # await message.answer(html.code("Current system prompt:") + html.pre(f"{current_persona[0]}") + f"<b><i>Persona:</i></b> {current_persona[4]}\n<b><i>AI name:</i></b> {current_persona[2]}\n<b><i>User name:</i></b> {current_persona[1]}", parse_mode=ParseMode.HTML)
-    user_settings = await select_user_settings(user_id = message.from_user.id)
-    print(f"Your settings:\n{user_settings}")
-    await message.answer(   html.code("Persona:") +
-                            f" <b>{user_settings[0]}</b>\n" +
-                            html.code("Model:") +
-                            f" <b>{user_settings[1]}</b>\n" +
-                            html.code("Personality:") +
-                            html.pre(f"{user_settings[2]}") +
-                            f"\n" + html.code("Bot  name: ") +
-                            f"<b>{user_settings[4]}</b>\n" +
-                            html.code("Your name: ") +
-                            f"<b>{user_settings[3]}</b>",
-                            parse_mode=ParseMode.HTML)
+    #user_settings = await select_user_settings(user_id = message.from_user.id)
+    #print(f"Your settings:\n{user_settings}")
+    await pin_user_settings(message, to_pin = False)
+    # await message.answer(   html.code("Persona:") +
+    #                         f" <b>{user_settings[0]}</b>\n" +
+    #                         html.code("Model:") +
+    #                         f" <b>{user_settings[1]}</b>\n" +
+    #                         html.code("Personality:") +
+    #                         html.pre(f"{user_settings[2]}") +
+    #                         f"\n" + html.code("Bot  name: ") +
+    #                         f"<b>{user_settings[4]}</b>\n" +
+    #                         html.code("Your name: ") +
+    #                         f"<b>{user_settings[3]}</b>",
+    #                         parse_mode=ParseMode.HTML)
 
 
     system_prompts_available = await select_all_system_prompts(user_id = message.from_user.id)
@@ -64,12 +65,6 @@ async def sys_choose_chat_persona(message: Message, state: FSMContext) -> None:
         await pin_user_settings(message)
 #        await main_menu(message, state)
 
-    elif message.text.casefold() == "✍️ edit current":
-        data = await state.get_data()
-        await bot.delete_message(message.chat.id, data["persona_list"])
-        current_persona = await select_system_prompt(user_id = message.from_user.id)
-        print(f"current_persona:\n{current_persona}")
-        print("---------------------------------------------------------------")
 #        if str(current_persona[3]) in ["1", "2"]:
 ##            await message.answer("It's read only, try #3 - #9", reply_markup = get_chat_kb())
  #           #await state.set_state( UIStates.chat )
@@ -78,7 +73,7 @@ async def sys_choose_chat_persona(message: Message, state: FSMContext) -> None:
         #await state.set_state(UIStates.chat)
 
 #        await message.answer(html.code("Current system prompt:") + html.pre(f"{current_persona[0]}") + f"\n<b><i>Persona:</i></b> {current_persona[4]}\n<b><i>AI name:</i></b> {current_persona[2]}\n<b><i>User name:  </i></b> {current_persona[1]}", parse_mode=ParseMode.HTML, reply_markup = edit_system_prompt_kb())
-        await message.answer(html.code("Use buttons to edit personality."), parse_mode=ParseMode.HTML, reply_markup = edit_system_prompt_kb())
+        # await message.answer(html.code("Use buttons to edit personality."), parse_mode=ParseMode.HTML, reply_markup = edit_system_prompt_kb())
 #        await state.set_state( UIStates.edit_system_prompt )
 #        await edit_user_system_prompt(message, state)
 #        await message.answer("Please edit system prompt", reply_markup = edit_system_prompt_kb())
@@ -87,6 +82,18 @@ async def sys_choose_chat_persona(message: Message, state: FSMContext) -> None:
     #     await message.answer("Canceled", reply_markup = get_chat_kb())
     await main_menu(message, state)
 
+##########################################################################################################################################################
+# Edit current
+@router.message(Command("edit"))
+@router.message(UIStates.sys, F.text.casefold() == "✍️ edit current")
+async def edit_user_current_settings(message: Message, state: FSMContext):
+    #data = await state.get_data()
+    # current_persona = await select_system_prompt(user_id = message.from_user.id)
+    # print(f"current_persona:\n{current_persona}")
+    # print("---------------------------------------------------------------")
+    await pin_user_settings(message, to_pin = False)
+    await message.answer(html.code("Use buttons to edit personality."), parse_mode=ParseMode.HTML, reply_markup = edit_system_prompt_kb())
+    await main_menu(message, state)
 ##########################################################################################################################################################
 # Edit chat personality
 @router.callback_query(F.data == "edit_system_prompt")

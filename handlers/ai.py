@@ -206,7 +206,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 # Illustrate the answer
 async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
     max_new_tokens      = 128
-    num_inference_steps = 70
+    num_inference_steps = 50
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 

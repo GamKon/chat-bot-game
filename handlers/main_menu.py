@@ -94,6 +94,12 @@ async def chat_menu(message: Message, state: FSMContext) -> None:
 @router.message(UIStates.edit_system_prompt_username,   F.text.casefold() == "❌ cancel")
 @router.message(UIStates.edit_system_prompt_ai_name,    F.text.casefold() == "❌ cancel")
 @router.message(UIStates.edit_system_prompt_save_name,  F.text.casefold() == "❌ cancel")
+@router.message(UIStates.edit_max_answer_length,F.text.casefold() == "❌ cancel")
+@router.message(UIStates.generate_image1,F.text.casefold() == "❌ cancel")
+@router.message(UIStates.generate_image2,F.text.casefold() == "❌ cancel")
+@router.message(UIStates.generate_image3,F.text.casefold() == "❌ cancel")
+@router.message(UIStates.summarize_text, F.text.casefold() == "❌ cancel")
+@router.message(UIStates.chat_user_chat, F.text.casefold() == "❌ cancel")
 async def cancel_handler(message: Message, state: FSMContext) -> None:
     await state.set_state( UIStates.chat )
     await message.answer("<i>Canceled</i>", reply_markup = get_chat_kb(),parse_mode = "HTML")

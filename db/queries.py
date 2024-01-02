@@ -242,10 +242,10 @@ async def add_default_user_prompts(user_id):
                 ))#.on_conflict_do_nothing(index_elements=['prompt_id']))
         personal_prompts = await conn.execute(select(Prompt.id).where(Prompt.user_id == user_id).order_by(Prompt.id.asc()))
         personal_prompts = personal_prompts.all()
-        # Assign second personal prompt to user
+        # Assign FIRST personal prompt to user
         print(personal_prompts)
         try:
-            await conn.execute(Update(User).where(User.user_id == user_id).values(prompt_id = personal_prompts[1][0]))
+            await conn.execute(Update(User).where(User.user_id == user_id).values(prompt_id = personal_prompts[0][0]))
         except:
             print("User has no prompts")
 
