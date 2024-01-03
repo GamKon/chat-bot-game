@@ -8,6 +8,7 @@ from aiogram.utils.chat_action import ChatActionSender
 #from aiogram import Bot
 from utility import debug_print
 from models.llm import llm_answer_from_model
+from models.gguf import llm_answer_from_gguf
 
 from models.GPTQ_Mistral_7B_Instruct_v0_2   import Mistral_7B_Instruct, Mistral_7B_Instruct_pipeline
 from models.GPTQ_Mixtral_8x7B_Instruct_v0_1 import GPTQ_Mixtral_8x7B_Instruct, GPTQ_Mixtral_8x7B_Instruct_pipeline
@@ -107,13 +108,24 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
             # Chat-GPT 3.5
             if current_user_model[0] == "gpt-3.5-turbo-1106":
                 llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
-            else:
-                llm_answer = await llm_answer_from_model(prompt_to_llm,
-                                                         current_user_model,
-#                                                         current_user_system_prompt,
-                                                         max_new_tokens)
-#                                                         message,
-#                                                         state)
+            elif ".gguf" in current_user_model[0]:
+                llm_answer, num_tokens = await llm_answer_from_gguf(
+                                                    prompt_to_llm,
+                                                    current_user_model,
+#                                                   current_user_system_prompt,
+                                                    max_new_tokens
+                                                )
+            elif "AWQ" in current_user_model[0]:
+                num_tokens = [""]
+                llm_answer = await llm_answer_from_model(
+                                        prompt_to_llm,
+                                        current_user_model,
+#                                       current_user_system_prompt,
+                                        max_new_tokens
+                                    )
+#                                       message,
+#                                       state)
+
                 # llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
             ###########################################
             # Mixtral-8x7B-Instruct
@@ -194,7 +206,12 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     await emoji_message.delete()
 #    await message.edit_text("💡")
     #await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
-    await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
+    if len(llm_answer) > 4096:
+        llm_answer = llm_answer[:4000] + "...truncated..."
+    try:
+        await message.answer(html.quote(llm_answer) + "\n" + str(num_tokens), reply_markup = get_chat_kb())
+    except Exception as e:
+        await message.answer("Error! Can't send message\n" + str(e), reply_markup = get_chat_kb())
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
@@ -211,9 +228,9 @@ async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> No
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
     # Summarize llm_answer for picture description
-    description_prompt  = "Summarize who, what doing and where is on the picture. Picture: '"
-    picture_description = await llm_answer_from_model(description_prompt + llm_answer + "' Very short summary:",
-                                                ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
+    description_prompt  = "Summarize description: '"
+    picture_description, num_tokens = await llm_answer_from_gguf(description_prompt + llm_answer + "' Very short summary:",
+                                                ["mistral-7b-instruct-v0.2.Q3_K_S.gguf"],
                                                 max_new_tokens)
 #    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
 

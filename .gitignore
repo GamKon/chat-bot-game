@@ -3,6 +3,7 @@ chat_history
 aiogram
 alembic
 old
+llama
 alembic.ini
 # Environment variable files
 *.env

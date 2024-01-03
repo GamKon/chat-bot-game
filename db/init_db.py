@@ -99,6 +99,7 @@ async def create_all_tables():
                 Model(  model_id = 8,  name  = "TheBloke/dolphin-2.7-mixtral-8x7b-AWQ", prompt_format = "ChatML", description = "Slow: Dolphin-2.7-mixtral-8x7b"),
                 Model(  model_id = 9,  name  = "TheBloke/mixtral-8x7b-v0.1-AWQ",        prompt_format = "Mistral", description = "Slow: Mixtral-8x7b"),
                 Model(  model_id = 35, name  = "gpt-3.5-turbo-1106",                    prompt_format = "json",    description = "OpenAI gpt-3.5-turbo-1106")
+#openhermes - chatML; Fast: Openhermes-2.5-Mistral-7b-q5
 
 # system_prompt": "You are an award-winning fiction author engaging in an uncensored literary roleplaying
 # experience between a human (me) and a creative, obedient, and helpful AI assistant (you).

@@ -1,11 +1,25 @@
 FROM python:3.11.5 AS chat-bot-ai
+# nvidia/cuda:12.3.1-runtime-ubuntu22.04
+
+#FROM ghcr.io/ggerganov/llama.cpp:light-cuda AS chat-bot-ai
+
+
+## To compile llama_cpp_python for cudo
+##RUN wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+##RUN dpkg -i cuda-keyring_1.1-1_all.deb
+
+#sudo apt-get update
+#sudo apt-get -y install cuda-toolkit-12-3
 
 #install tools
 RUN apt-get update && apt-get install --assume-yes \
     curl \
     nano \
     git \
-    ffmpeg
+    ffmpeg \
+    mc
+    # \
+    #cuda-toolkit-12-3
 #    nvtop
 
 #RUN rm -rf /usr/lib/x86_64-linux-gnu/libnvidia-*.so* \
@@ -21,6 +35,9 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 RUN pip install --upgrade "git+https://github.com/huggingface/transformers" optimum
 
+##RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=86" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
+# -DCMAKE_CUDA_ARCHITECTURES=!!native/all
+
 
 # Set the working directory
 WORKDIR /app
@@ -33,7 +50,7 @@ RUN curl -fsSL "https://github.com/nickthecook/crops/releases/download/${OPS_VER
     | tar xj --strip-components=3 -C /usr/local/bin crops/build/linux_x86_64/ops
 
 # Create dir for storing models
-RUN mkdir -p /root/.cache/huggingface
+#RUN mkdir -p /root/.cache/huggingface
 
 
 # Create directories for media files
@@ -42,7 +59,7 @@ RUN mkdir -p /app/models
 RUN mkdir -p /app/keyboards
 RUN mkdir -p /app/handlers
 RUN mkdir -p /app/data/database
-
+RUN mkdir -p /app/llama_cpp
 #Copy ops.yml file
 COPY ops_for_image.yml ./ops.yml
 
@@ -56,12 +73,16 @@ COPY ./classes.py ./
 COPY ./templating.py ./
 COPY ./utility.py ./
 
+# Copy precompiled llama_cpp_python with CUDA GPU support
+COPY ./llama_cpp/ /usr/local/lib/python3.11/site-packages/llama_cpp/
+
 # RUN chown -R user:user /app
 # RUN chown -R user:user /home/user
 
 USER user
 RUN mkdir -p /home/user/.cache/huggingface
 RUN mkdir -p /home/user/.cache/torch/kernels
+#RUN mkdir -p /home/user/models
 # Run the application
 #CMD ["python", "main.py"]
 ENTRYPOINT ["tail", "-f", "/dev/null"]

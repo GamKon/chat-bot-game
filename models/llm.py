@@ -13,7 +13,8 @@ async def llm_answer_from_model(prompt_to_llm,
         current_user_model[0],
         low_cpu_mem_usage=True,
         device_map="cuda:0",
-        trust_remote_code=True
+        trust_remote_code=True,
+#        cache_dir="/home/user/models/"
     )
 
     # Using the text streamer to stream output one token at a time

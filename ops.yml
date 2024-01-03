@@ -119,3 +119,4 @@ options:
     load_secrets: true
   environment:
     LD_LIBRARY_PATH: /usr/lib/wsl/lib/:/home/gamkon/.local/lib/python3.10/site-packages/nvidia/cudnn/lib:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt_libs/:/home/gamkon/.local/lib/python3.10/site-packages/nvidia/cuda_runtime/lib:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt:/home/gamkon/.local/lib/python3.10/site-packages/tensorrt_bindings
+    LLAMA_CPP_LIB: /home/gamkon/.local/lib/python3.10/site-packages/llama_cpp/libllama.so
