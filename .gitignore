@@ -5,6 +5,7 @@ alembic
 old
 llama
 alembic.ini
+my_notes
 # Environment variable files
 *.env
 

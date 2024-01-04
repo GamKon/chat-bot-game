@@ -105,14 +105,14 @@ async def generate_image(message: Message, state: FSMContext) -> None:
 ##########################################################################################################################################################
 # Summarize text
 @router.message(Command("summ"))
-async def generate_image(message: Message, state: FSMContext) -> None:
+async def summarize_what(message: Message, state: FSMContext) -> None:
     await state.set_state( UIStates.summarize_text )
     await message.answer("<i>Gimme the text!</i>", reply_markup = cancel_kb(), parse_mode = "HTML")
 @router.message(UIStates.summarize_text)
-async def generate_image(message: Message, state: FSMContext) -> None:
+async def summarize_text(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         emoji_message = await message.answer("✍️", reply_markup = get_chat_kb())
-        message_to_llm = f"Summarise this: '{message.text}'. Summary:"
+        message_to_llm = f"Summarize this: '{message.text}'. Summary:"
         print(f"message.text to summarize:\n{message_to_llm.strip()}")
         summary = await llm_answer_from_model(message_to_llm,
                                                 ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],

@@ -115,7 +115,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 #                                                   current_user_system_prompt,
                                                     max_new_tokens
                                                 )
-            elif "AWQ" in current_user_model[0]:
+            elif ("AWQ" in current_user_model[0]) or ("GPTQ" in current_user_model[0]):
                 num_tokens = [""]
                 llm_answer = await llm_answer_from_model(
                                         prompt_to_llm,
@@ -187,13 +187,13 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
         except (RuntimeError, ValueError) as e:
             # Print error message
             if i < 6:
-                await message.answer("Still thinking...\n" + str(e) + "\nRetry #"+str(i))
+                await message.answer("Still thinking...\n" + html.quote(str(e)) + "\nRetry #" + str(i))
             else:
-                await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
+                await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
                 return
             sleep(6)
         except (TypeError, NameError, Exception) as e:
-            await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
+            await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
             return
     # Remove AI name from answer if any
     # if current_user_system_prompt[2] != "":
@@ -209,9 +209,9 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     if len(llm_answer) > 4096:
         llm_answer = llm_answer[:4000] + "...truncated..."
     try:
-        await message.answer(html.quote(llm_answer) + "\n" + str(num_tokens), reply_markup = get_chat_kb())
+        await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
     except Exception as e:
-        await message.answer("Error! Can't send message\n" + str(e), reply_markup = get_chat_kb())
+        await message.answer("Error! Can't send message\n" + html.quote(str(e)), reply_markup = get_chat_kb())
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
@@ -229,8 +229,8 @@ async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> No
 
     # Summarize llm_answer for picture description
     description_prompt  = "Summarize description: '"
-    picture_description, num_tokens = await llm_answer_from_gguf(description_prompt + llm_answer + "' Very short summary:",
-                                                ["mistral-7b-instruct-v0.2.Q3_K_S.gguf"],
+    picture_description = await llm_answer_from_model(description_prompt + llm_answer + "' Very short summary:",
+                                                ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
                                                 max_new_tokens)
 #    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
 
