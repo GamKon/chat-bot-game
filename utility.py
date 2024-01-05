@@ -8,23 +8,29 @@ from aiogram.enums import ParseMode
 
 ##########################################################################################################################################################
 # Pin User settings
-async def pin_user_settings(message: Message) -> None:
+async def pin_user_settings(message: Message, to_pin: bool = True) -> None:
     user_settings = await select_user_settings(user_id = message.from_user.id)
-    print(f"Your settings:\n{user_settings}")
-    user_settings_message = await message.answer(html.code("Persona:") +
-                                                 f" <b>{user_settings[0]}</b>\n" +
-                                                 html.code("Model:") +
-                                                 f" <b>{user_settings[1]}</b>\n" +
-                                                 html.code("Personality:") +
-                                                 html.pre(f"{user_settings[2]}") +
-                                                 f"\n" + html.code("Bot  name: ") +
-                                                 f"<b>{user_settings[4]}</b>\n" +
-                                                 html.code("Your name: ") +
-                                                 f"<b>{user_settings[3]}</b>",
-                                                 parse_mode=ParseMode.HTML)
-    await bot.unpin_all_chat_messages(message.chat.id)
-    await bot.pin_chat_message(message.chat.id, user_settings_message.message_id, disable_notification = True)
-    # await main_menu(message, state = None)
+    debug_print("User settings", user_settings)
+    try:
+        user_settings_message = await message.answer(html.code("Persona:") +
+                                                    f" <b>{user_settings[0]}</b>\n" +
+                                                    html.code("Model:") +
+                                                    f" <b>{user_settings[1]}</b>\n" +
+                                                    html.code("Personality:") +
+                                                    html.pre(f"{user_settings[2]}") +
+                                                    f"\n" + html.code("Chat    #: ") +
+                                                    f"<b>{user_settings[5]}</b>\n" +
+                                                    html.code("Bot  name: ") +
+                                                    f"<b>{user_settings[4]}</b>\n" +
+                                                    html.code("Your name: ") +
+                                                    f"<b>{user_settings[3]}</b>",
+                                                    parse_mode=ParseMode.HTML)
+        if to_pin:
+            await bot.unpin_all_chat_messages(message.chat.id)
+            await bot.pin_chat_message(message.chat.id, user_settings_message.message_id, disable_notification = True)
+    except Exception as e:
+        await message.answer("Something went wrong 👾\nPlease try again later")
+        # await main_menu(message, state = None)
 ##########################################################################################################################################################
 
 ##########################################################################################################################################################

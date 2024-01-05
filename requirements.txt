@@ -10,6 +10,10 @@ accelerate
 autoawq
 openai
 nvitop
+llama-cpp-python
+packaging
+ninja
+#flash_attn
 # einops # for chat_phi_1_5
 # sacremoses # to use XLMTokenizer
 # emoji

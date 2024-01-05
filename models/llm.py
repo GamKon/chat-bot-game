@@ -9,13 +9,25 @@ async def llm_answer_from_model(prompt_to_llm,
     debug_print(f"prompt TO {current_user_model[0]}", prompt_to_llm)
 
     tokenizer = AutoTokenizer.from_pretrained(current_user_model[0], trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(
-        current_user_model[0],
-        low_cpu_mem_usage=True,
-        device_map="cuda:0",
-        trust_remote_code=True
-    )
 
+    revision = "gptq-4bit-32g-actorder_True"
+
+    if "GPTQ" in current_user_model[0]:
+        model = AutoModelForCausalLM.from_pretrained(
+            current_user_model[0],
+            low_cpu_mem_usage=True,
+            device_map="cuda:0",
+            trust_remote_code=True,
+            revision=revision
+    #        cache_dir="/home/user/models/"
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            current_user_model[0],
+            low_cpu_mem_usage=True,
+            device_map="cuda:0",
+            trust_remote_code=True
+        )
     # Using the text streamer to stream output one token at a time
     streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
 
@@ -55,6 +67,12 @@ async def llm_answer_from_model(prompt_to_llm,
 
     llm_reply_stdout = new_stdout.getvalue()
     debug_print(f"Stdout RAW LLM reply from {current_user_model[0]}", llm_reply_stdout)
+
+    length_str = len(str("".join(llm_reply_stdout.splitlines())).strip())
+    debug_print("Length_str", length_str)
+    if len(str("".join(llm_reply_stdout.splitlines())).strip()) == 0:
+        raise Exception("LLM reply is empty")
+
     return llm_reply_stdout
 
 ##########################################################################################################################################################

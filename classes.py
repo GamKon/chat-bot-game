@@ -29,3 +29,4 @@ class UIStates(StatesGroup):
     generate_image2              = State()
     generate_image3              = State()
     summarize_text               = State()
+    chat_user_chat               = State()

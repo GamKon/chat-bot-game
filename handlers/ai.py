@@ -8,6 +8,7 @@ from aiogram.utils.chat_action import ChatActionSender
 #from aiogram import Bot
 from utility import debug_print
 from models.llm import llm_answer_from_model
+from models.gguf import llm_answer_from_gguf
 
 from models.GPTQ_Mistral_7B_Instruct_v0_2   import Mistral_7B_Instruct, Mistral_7B_Instruct_pipeline
 from models.GPTQ_Mixtral_8x7B_Instruct_v0_1 import GPTQ_Mixtral_8x7B_Instruct, GPTQ_Mixtral_8x7B_Instruct_pipeline
@@ -102,26 +103,29 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
             ###########################################
             # Get llm_answer from LLM
- ###           llm_answer = await llm_answer_from_model(prompt_to_llm, current_user_model, current_user_system_prompt, max_new_tokens, message, state)
-
-
 
             ###########################################
-            # Mistral_7B_Instruct
-            if  (current_user_model[0] == "TheBloke/Mistral-7B-Instruct-v0.2-AWQ") or \
-                (current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ") or \
-                (current_user_model[0] == "TheBloke/dolphin-2.2-yi-34b-200k-AWQ") or \
-                (current_user_model[0] == "TheBloke/LLaMA2-13B-Psyfighter2-AWQ") or \
-                (current_user_model[0] == "TheBloke/LLaMA2-13B-Tiefighter-AWQ") or \
-                (current_user_model[0] == "TheBloke/Aurora-Nights-70B-v1.0-AWQ") or \
-                (current_user_model[0] == "TheBloke/WizardLM-33B-V1.0-Uncensored-AWQ") or \
-                (current_user_model[0] == "TheBloke/Pygmalion-2-13B-AWQ"):
-                llm_answer = await llm_answer_from_model(prompt_to_llm,
-                                                         current_user_model,
-#                                                         current_user_system_prompt,
-                                                         max_new_tokens)
-#                                                         message,
-#                                                         state)
+            # Chat-GPT 3.5
+            if current_user_model[0] == "gpt-3.5-turbo-1106":
+                llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
+            elif ".gguf" in current_user_model[0]:
+                llm_answer, num_tokens = await llm_answer_from_gguf(
+                                                    prompt_to_llm,
+                                                    current_user_model,
+#                                                   current_user_system_prompt,
+                                                    max_new_tokens
+                                                )
+            elif ("AWQ" in current_user_model[0]) or ("GPTQ" in current_user_model[0]):
+                num_tokens = [""]
+                llm_answer = await llm_answer_from_model(
+                                        prompt_to_llm,
+                                        current_user_model,
+#                                       current_user_system_prompt,
+                                        max_new_tokens
+                                    )
+#                                       message,
+#                                       state)
+
                 # llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
             ###########################################
             # Mixtral-8x7B-Instruct
@@ -154,10 +158,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
             # elif current_user_model[0] == "TheBloke/Pygmalion-2-13B-AWQ":
             #     llm_answer = await Pygmalion_2_13B_AWQ(prompt_to_llm, max_new_tokens)
 
-            ###########################################
-            # Chat-GPT 3.5
-            elif current_user_model[0] == "gpt-3.5-turbo-1106":
-                llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
+
 
 
 
@@ -176,21 +177,24 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 # TypeError: object str can't be used in 'await' expression
                 #llm_answer = await GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm)
 
-            else:
-                await emoji_message.delete()
-                await message.answer("Error! No model selected\n" + str(current_user_model))
-#                    llm_answer = "Error! No model selected\n" + str(current_user_model)
-                #await emoji_message.edit_text(llm_answer)
-                return
+#             else:
+#                 await emoji_message.delete()
+#                 await message.answer("Error! No model selected\n" + str(current_user_model))
+# #                    llm_answer = "Error! No model selected\n" + str(current_user_model)
+#                 #await emoji_message.edit_text(llm_answer)
+#                 return
             break
-        except (ValueError, RuntimeError) as e:
+        except (RuntimeError, ValueError) as e:
             # Print error message
             if i < 6:
-                await message.answer("Still thinking...\n" + str(e) + "\nRetry #"+str(i))
+                await message.answer("Still thinking...\n" + html.quote(str(e)) + "\nRetry #" + str(i))
             else:
-                await message.answer("Nothing came to my mind, sorry (\n" + str(e), reply_markup = get_chat_kb())
+                await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
                 return
             sleep(6)
+        except (TypeError, NameError, Exception) as e:
+            await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+            return
     # Remove AI name from answer if any
     # if current_user_system_prompt[2] != "":
     #     llm_answer = str(llm_answer.split(f"{current_user_system_prompt[2]}:",1)[-1]).lstrip()
@@ -202,37 +206,42 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     await emoji_message.delete()
 #    await message.edit_text("💡")
     #await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
-    await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
+    if len(llm_answer) > 4096:
+        llm_answer = llm_answer[:4000] + "...truncated..."
+    try:
+        await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
+    except Exception as e:
+        await message.answer("Error! Can't send message\n" + html.quote(str(e)), reply_markup = get_chat_kb())
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
-        await illustrate(message, state, llm_answer)
+        await illustrate(message, state, llm_answer, current_user_system_prompt[4].lower())
 
 ##########################################################################################################################################################
 
 ##########################################################################################################################################################
 # Illustrate the answer
-async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
+async def illustrate(message: Message, state: FSMContext, llm_answer: str, game_type: str) -> None:
     max_new_tokens      = 128
-    num_inference_steps = 40
+    num_inference_steps = 70
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
     # Summarize llm_answer for picture description
-    description_prompt  = "Summaryze what is on the picture. Picture: '"
+    description_prompt  = "Summarize description: '"
     picture_description = await llm_answer_from_model(description_prompt + llm_answer + "' Very short summary:",
                                                 ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
                                                 max_new_tokens)
 #    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
 
-    picture_description_cut = str(picture_description.split("\n")[0]).strip()
+    picture_description_cut = game_type.replace("game", "") + " " + str(picture_description.split("\n")[0]).strip()
     debug_print("Summarized picture description", picture_description_cut)
 
     # playground accepts only 77 tokens
     result_image_path   = await OpenDalleV1_1(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
     await emoji_message.delete()
-    await message.answer_photo(result_image, picture_description_cut[:980]+"\nOpenDalle V1.1")
+    await message.answer_photo(result_image, picture_description_cut[:980])
 
     # Try different styles
     # result_image_path   = await OpenDalleV1_1(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
@@ -251,7 +260,7 @@ async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> No
 
     result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
-    await message.answer_photo(result_image, "Playground V2 aesthetic")
+    await message.answer_photo(result_image)
 
     # Try different styles
     # result_image_path   = await playground_v2_1024px_aesthetic(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)

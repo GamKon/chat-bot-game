@@ -75,23 +75,23 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
         prompt_to_llm += f"<|user|>{user_role_name}{message_to_llm}<|assistant|>{assistant_role_name}"
 
     ###########################################################
-    # Llama format
-    elif format_to == "Llama":
-        if user_role_name == "": user_role_name = "user"
-        if assistant_role_name == "": assistant_role_name = "assistant"
+    # Alpaca format
+    elif format_to == "Alpaca":
+        if user_role_name == "": user_role_name = "Input: "
+        if assistant_role_name == "": assistant_role_name = "Response: "
 
         # make messages list from DB in STRING format
-        prompt_to_llm = "### Insruction: " + system_role_prompt[0] + "\n"
+        prompt_to_llm = "### Insruction:\n" + system_role_prompt[0] + "\n"
         for prompt in messages_history:
             # TODO add custom role names
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
             # x if C else y
             if prompt[0].lower() == "user":
                 # If roles are empty, don't add ":" to prompt
-                prompt_to_llm += f"### {user_role_name}{prompt[1]}\n"
+                prompt_to_llm += f"### {user_role_name}\n{prompt[1]}\n"
             else:
                 prompt_to_llm += f"### {assistant_role_name}{prompt[1]}\n"
-        prompt_to_llm += f"### {user_role_name}{message_to_llm}\n### {assistant_role_name}\n"
+        prompt_to_llm += f"### {user_role_name}\n{message_to_llm}\n### {assistant_role_name}\n"
 
     ###########################################################
     # Vicuna format
@@ -102,7 +102,7 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
         assistant_role_name = "ASSISTANT: "
 
         # make messages list from DB in STRING format
-        prompt_to_llm = system_role_prompt[0] + "\n"
+        prompt_to_llm = "SYSTEM: " + system_role_prompt[0] + "\n"
         for prompt in messages_history:
             # TODO add custom role names
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
