@@ -215,15 +215,15 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
-        await illustrate(message, state, llm_answer)
+        await illustrate(message, state, llm_answer, current_user_system_prompt[4].lower())
 
 ##########################################################################################################################################################
 
 ##########################################################################################################################################################
 # Illustrate the answer
-async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> None:
+async def illustrate(message: Message, state: FSMContext, llm_answer: str, game_type: str) -> None:
     max_new_tokens      = 128
-    num_inference_steps = 50
+    num_inference_steps = 70
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
@@ -234,7 +234,7 @@ async def illustrate(message: Message, state: FSMContext, llm_answer: str) -> No
                                                 max_new_tokens)
 #    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
 
-    picture_description_cut = str(picture_description.split("\n")[0]).strip()
+    picture_description_cut = game_type.replace("game", "") + " " + str(picture_description.split("\n")[0]).strip()
     debug_print("Summarized picture description", picture_description_cut)
 
     # playground accepts only 77 tokens
