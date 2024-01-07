@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install --assume-yes \
 ##    cuda-toolkit-12-3
 #    nvtop
 
+# To fix a bug in the nvidia driver installation
 #RUN rm -rf /usr/lib/x86_64-linux-gnu/libnvidia-*.so* \
 #           /usr/lib/x86_64-linux-gnu/libcuda.so*
 #     /usr/lib/x86_64-linux-gnu/libnvcuvid.so* \
@@ -34,39 +35,40 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 RUN pip install --upgrade "git+https://github.com/huggingface/transformers" optimum
+
+# Flash attention
 #RUN CUDA_HOME=/usr/lib/nvidia-cuda-toolkit
 ##RUN pip install flash-attn --no-build-isolation
 
+# llama.cpp
 ##RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=all" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
 #  nvcc --list-gpu-arch
 # -DCMAKE_CUDA_ARCHITECTURES=!!native/all/86
 
+# Create user
+RUN useradd -m -u 1000 user
 
 # Set the working directory
 WORKDIR /app
-# Create user
-RUN useradd -m -u 1000 user
 
 # Install CrOps Team
 ARG OPS_VERSION="2.3.2"
 RUN curl -fsSL "https://github.com/nickthecook/crops/releases/download/${OPS_VERSION}/crops.tar.bz2" \
     | tar xj --strip-components=3 -C /usr/local/bin crops/build/linux_x86_64/ops
+#Copy ops.yml file
+COPY ops_for_image.yml ./ops.yml
 
 # Create dir for storing models
 #RUN mkdir -p /root/.cache/huggingface
 
-
-# Create directories for media files
+# Create app directories
 RUN mkdir -p /app/db
 RUN mkdir -p /app/models
 RUN mkdir -p /app/keyboards
 RUN mkdir -p /app/handlers
 RUN mkdir -p /app/data/voice
 RUN mkdir -p /app/data/generated_images
-
 RUN mkdir -p /app/llama_cpp
-#Copy ops.yml file
-COPY ops_for_image.yml ./ops.yml
 
 # Copy the application code
 COPY ./db/*.py ./db/

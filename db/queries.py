@@ -74,19 +74,20 @@ async def select_user_chat_history(user_id):
     async with engine.begin() as conn:
         current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
         user_chat_id = int(current_chat_id.first()[0])
-        result = await conn.execute(select(Message.author, Message.content).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.asc()))
+        result = await conn.execute(select(Message.author, Message.content, Message.summ_content).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.asc()))
         return result.all()
 ##########################################################################################################################################################
 # Add user message
-async def add_message(user_id, author, content):
+async def add_message(user_id, author, content, summ_content):
     async with engine.begin() as conn:
         current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
         user_chat_id = int(current_chat_id.first()[0])
         await conn.execute(insert(Message).values(
-                user_id     = user_id,
-                author      = author,
-                content     = content,
-                chat_id     = user_chat_id
+                user_id      = user_id,
+                author       = author,
+                content      = content,
+                summ_content = summ_content,
+                chat_id      = user_chat_id
             ))
 ##########################################################################################################################################################
 # Select last User question
@@ -204,7 +205,8 @@ async def select_user_llm_model(user_id):
             Model.name,
             Model.model_id,
             Model.prompt_format,
-            Model.use_names).where(User.user_id == user_id,
+            Model.use_names,
+            Model.max_tokens).where(User.user_id == user_id,
                                        Model.model_id == User.model_id
                                        )
             )

@@ -10,12 +10,11 @@ services:
       - TELEGRAM_BOT_TOKEN
       - OPENAI_API_KEY
       - HELP_MESSAGE
-      - INITIAL_PROMPT
-      - MODEL_NAME
-      - MODEL_DESCRIPTION
       - DATABASE_CONNECTION
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - NVIDIA_VISIBLE_DEVICES=all
+      # Disable tensorflow warnings
+      - TF_CPP_MIN_LOG_LEVEL
     deploy:
       resources:
         reservations:
@@ -24,28 +23,12 @@ services:
               count: all # or device_ids: ['0', '3']
               capabilities: [gpu]
 #    entrypoint: python3 main.py
-    # depends_on:
-    #   - db
-    networks:
-      - chat_bot_ai
-      #- postgres-ai
 
-networks:
-  postgres_ai:
-    name: postgres_ai_net
-  chat_bot_ai:
-    name: chat_bot_ai_net
+    # networks:
+    #   - chat_bot_ai
 
-
-  # db:
-  #   container_name: postgres-ai
-  #   image: postgres:16-alpine
-  #   restart: unless-stopped
-  #   ports:
-  #     - 5432:5432
-  #   environment:
-  #     POSTGRES_USERNAME:  ${POSTGRES_USER}
-  #     POSTGRES_PASSWORD:  ${POSTGRES_PASSWORD}
-  #     POSTGRES_DB:        ${POSTGRES_DB}
-  #   volumes:
-  #     - ${APP_DATA_DIR}/database:/var/lib/postgresql/data
+# networks:
+#   postgres_ai:
+#     name: postgres_ai_net
+#   chat_bot_ai:
+#     name: chat_bot_ai_net

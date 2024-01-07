@@ -1,22 +1,17 @@
-from aiogram import Router, F
-from classes import UIStates
+from aiogram import Router, F, Bot
 from aiogram.types import Message, FSInputFile, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
-from aiogram import Bot
 
+from classes import UIStates
 from handlers.main_menu             import main_menu
 from keyboards.keyboards            import *
-from models.openai_whisper_large_v3 import openai_whisper_large_v3
-from handlers.ai                    import send_to_llm
-from utility                        import debug_print
-from models.llm                     import llm_answer_from_model
+from handlers.ai                    import send_to_llm, summarize_text
 
+from models.openai_whisper_large_v3 import openai_whisper_large_v3
 from models.playgroundai            import playground_v2_1024px_aesthetic
 from models.OpenDalleV1_1           import OpenDalleV1_1
 from models.stable_diffusion        import stable_diffusion_xl_base_1_0, stable_diffusion_xl_base_refiner_1_0
-#from models.Falconsai_text_summarization import text_summarization
-from models.AWQ_Mistral_7B_Instruct_v0_2 import AWQ_Mistral_7B_Instruct_pipe
 
 router = Router()
 
@@ -38,7 +33,6 @@ async def download_voice(message: Message, state: FSMContext, bot: Bot):
 @router.message(UIStates.confirm_send_transcript)
 async def send_transcript(message: Message, state: FSMContext) -> None:
     if message.text.casefold() == "✅ ok":
-#        await message.answer("Sent", reply_markup = get_chat_kb())
         # Get transcript from state
         data = await state.get_data()
         message_to_llm = data["transcript"]
@@ -107,17 +101,14 @@ async def generate_image(message: Message, state: FSMContext) -> None:
 @router.message(Command("summ"))
 async def summarize_what(message: Message, state: FSMContext) -> None:
     await state.set_state( UIStates.summarize_text )
-    await message.answer("<i>Gimme the text!</i>", reply_markup = cancel_kb(), parse_mode = "HTML")
+    await message.answer("<i>Paste long text to summarize</i>", reply_markup = cancel_kb(), parse_mode = "HTML")
 @router.message(UIStates.summarize_text)
-async def summarize_text(message: Message, state: FSMContext) -> None:
+async def summarize_text_command(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         emoji_message = await message.answer("✍️", reply_markup = get_chat_kb())
-        message_to_llm = f"Summarize this: '{message.text}'. Summary:"
-        print(f"message.text to summarize:\n{message_to_llm.strip()}")
-        summary = await llm_answer_from_model(message_to_llm,
-                                                ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
-                                                max_new_tokens=128)
-        #await send_to_llm(message, state, message_to_llm.strip())
+
+        summary = await summarize_text(message.text)
+
         await emoji_message.delete()
 
         # await state.set_state( UIStates.chat )
