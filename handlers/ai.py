@@ -6,34 +6,20 @@ from aiogram.utils.chat_action import ChatActionSender
 # from aiogram.enums.chat_action import ChatAction
 # from aiogram.methods import SendChatAction
 #from aiogram import Bot
-from utility import debug_print
-from models.llm import llm_answer_from_model
-from models.gguf import llm_answer_from_gguf
+from utility        import debug_print
 
-from models.GPTQ_Mistral_7B_Instruct_v0_2   import Mistral_7B_Instruct, Mistral_7B_Instruct_pipeline
-from models.GPTQ_Mixtral_8x7B_Instruct_v0_1 import GPTQ_Mixtral_8x7B_Instruct, GPTQ_Mixtral_8x7B_Instruct_pipeline
-from models.AWQ_dolphin_2_2_yi_34b          import AWQ_Dolphin_2_2_yi_34b_pipe
-from models.AWQ_Mixtral_8x7B_Instruct_v0_1  import AWQ_Mixtral_8x7B_Instruct_pipe, AWQ_Mixtral_8x7B_Instruct
-from models.AWQ_Mistral_7B_Instruct_v0_2    import AWQ_Mistral_7B_Instruct_pipe
-from models.AWQ_Guanaco_13B                 import AWQ_Guanaco_13B_Uncensored_AWQ, AWQ_Guanaco_13B_Uncensored_AWQ_pipe
-from models.Mistral_7B_Instruct_v0_2        import Mistral_7B_Instruct_pipe
-from models.AWQ_LLaMA2_13B_Psyfighter2      import AWQ_LLaMA2_13B_Psyfighter2
-from models.AWQ_LLaMA2_13B_Tiefighter       import AWQ_LLaMA2_13B_Tiefighter
-from models.Aurora_Nights_70B_v1_0_AWQ      import AWQ_Aurora_Nights_70B_v1_0, AWQ_Aurora_Nights_70B_v1_0_pipe
-from models.WizardLM_33B_V1_0_AWQ           import WizardLM_33B_V1_0_AWQ, WizardLM_33B_V1_0_AWQ_pipe
-from models.Pygmalion_2_13B_AWQ             import Pygmalion_2_13B_AWQ
-from models.openai_chatgpt                  import gpt_3_5_turbo_1106
-from models.playgroundai                    import playground_v2_1024px_aesthetic
-from models.OpenDalleV1_1                   import OpenDalleV1_1
-from models.stable_diffusion                import stable_diffusion_xl_base_1_0, stable_diffusion_xl_base_refiner_1_0
-from models.Linaqruf_animagine_xl_2_0       import animagine_xl_2_0
+from models.llm     import llm_answer_from_model
+from models.gguf    import llm_answer_from_gguf
 
-from handlers.main_menu             import main_menu
+from models.openai_chatgpt  import gpt_3_5_turbo_1106
+from models.playgroundai    import playground_v2_1024px_aesthetic
+from models.OpenDalleV1_1   import OpenDalleV1_1
 
-from classes import UIStates, bot
-from db.queries import *
-from templating import chat_template
-from keyboards.keyboards import get_chat_kb
+from handlers.main_menu     import main_menu
+from classes                import UIStates, bot
+from db.queries             import *
+from templating             import chat_template
+from keyboards.keyboards    import get_chat_kb
 
 router = Router()
 
@@ -63,6 +49,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     # Emoji "Thinking..."
     emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
+
     current_user_model = await select_user_llm_model(message.from_user.id)
 
     # Set maximum answer length max_new_tokens
@@ -86,7 +73,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     debug_print("User input before templating: message_to_llm", message_to_llm)
 
     # Template whole string to send depending on format
-    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2])
+    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
 
     ###########################################################
     # Prepare prompt for LLM
@@ -95,7 +82,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     ###########################################################
     # Send prompt to LLM
     # 5 tries to handle recoverable model Errors
-    for i in range(1, 7):
+    for i in range(1, 3):
         try:
                 # Stop accepting messages while LLM is thinking
                 # data = await state.update_data(is_thinking = True)
@@ -186,7 +173,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
             break
         except (RuntimeError, ValueError) as e:
             # Print error message
-            if i < 6:
+            if i < 2:
                 await message.answer("Still thinking...\n" + html.quote(str(e)) + "\nRetry #" + str(i))
             else:
                 await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())

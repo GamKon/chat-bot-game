@@ -203,7 +203,8 @@ async def select_user_llm_model(user_id):
         result = await conn.execute(select(
             Model.name,
             Model.model_id,
-            Model.prompt_format).where(User.user_id == user_id,
+            Model.prompt_format,
+            Model.use_names).where(User.user_id == user_id,
                                        Model.model_id == User.model_id
                                        )
             )

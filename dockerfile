@@ -4,9 +4,9 @@ FROM python:3.11.5 AS chat-bot-ai
 #FROM ghcr.io/ggerganov/llama.cpp:light-cuda AS chat-bot-ai
 
 
-## To compile llama_cpp_python for cuda
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
-RUN dpkg -i cuda-keyring_1.1-1_all.deb
+## GGUF To compile llama_cpp_python for cuda
+##RUN wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+##RUN dpkg -i cuda-keyring_1.1-1_all.deb
 
 #sudo apt-get update
 #sudo apt-get -y install cuda-toolkit-12-3
@@ -17,8 +17,9 @@ RUN apt-get update && apt-get install --assume-yes \
     nano \
     git \
     ffmpeg \
-    mc \
-    cuda-toolkit-12-3
+    mc
+    #    \
+##    cuda-toolkit-12-3
 #    nvtop
 
 #RUN rm -rf /usr/lib/x86_64-linux-gnu/libnvidia-*.so* \
@@ -34,9 +35,9 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 RUN pip install --upgrade "git+https://github.com/huggingface/transformers" optimum
 #RUN CUDA_HOME=/usr/lib/nvidia-cuda-toolkit
-RUN pip install flash-attn --no-build-isolation
+##RUN pip install flash-attn --no-build-isolation
 
-RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=all" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
+##RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=all" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
 #  nvcc --list-gpu-arch
 # -DCMAKE_CUDA_ARCHITECTURES=!!native/all/86
 
@@ -60,7 +61,9 @@ RUN mkdir -p /app/db
 RUN mkdir -p /app/models
 RUN mkdir -p /app/keyboards
 RUN mkdir -p /app/handlers
-RUN mkdir -p /app/data/database
+RUN mkdir -p /app/data/voice
+RUN mkdir -p /app/data/generated_images
+
 RUN mkdir -p /app/llama_cpp
 #Copy ops.yml file
 COPY ops_for_image.yml ./ops.yml
@@ -80,11 +83,11 @@ COPY ./utility.py ./
 
 # RUN chown -R user:user /app
 # RUN chown -R user:user /home/user
-
+RUN chmod -R 777 /app
 USER user
 RUN mkdir -p /home/user/.cache/huggingface
 RUN mkdir -p /home/user/.cache/torch/kernels
 #RUN mkdir -p /home/user/models
 # Run the application
-#CMD ["python", "main.py"]
+# CMD ["python", "main.py"]
 ENTRYPOINT ["tail", "-f", "/dev/null"]
