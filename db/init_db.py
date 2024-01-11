@@ -95,7 +95,7 @@ async def create_all_tables():
                 Model(  model_id = 1,  name  = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", prompt_format = "Mistral", max_tokens = 8192, use_names = True, description = "Fast: Mistral-7b all"),
                 Model(  model_id = 2,  name  = "TheBloke/Sonya-7B-AWQ",                 prompt_format = "Alpaca", max_tokens = 8192, use_names = True, description = "Fast: Sonya-7b all"),
                 Model(  model_id = 3,  name  = "TheBloke/LLaMA2-13B-Tiefighter-AWQ",    prompt_format = "Alpaca", max_tokens = 4096, use_names = True, description = "Norm: Tiefighter-13b play"),
-                Model(  model_id = 4,  name  = "TheBloke/Unholy-v2-13B-AWQ",            prompt_format = "Alpaca", max_tokens = 4096, use_names = True, description = "Norm: Unholy-v2-13B play"),
+                Model(  model_id = 4,  name  = "TheBloke/Unholy-v2-13B-AWQ",            prompt_format = "Vicuna", max_tokens = 4096, use_names = True, description = "Norm: Unholy-v2-13B play"),
                 Model(  model_id = 5,  name  = "TheBloke/Xwin-MLewd-13B-v0.2-AWQ",      prompt_format = "Vicuna", max_tokens = 4096, use_names = True, description = "Norm: Xwin-MLewd-13B play"),
                 Model(  model_id = 6,  name  = "TheBloke/psyonic-cetacean-20B-AWQ",     prompt_format = "Alpaca", max_tokens = 4096, use_names = True, description = "Norm: Psyonic-cetacean-20b play"),
                 Model(  model_id = 7,  name  = "TheBloke/Iambe-RP-DARE-20B-DENSE-AWQ",  prompt_format = "Vicuna", max_tokens = 4096, use_names = True, description = "Norm: Iambe-RP-DARE-20B-DENSE play"),

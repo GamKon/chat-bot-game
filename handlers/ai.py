@@ -150,17 +150,20 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
-        await illustrate(message, state, summ_llm_answer, current_user_system_prompt[4].lower())
+        try:
+            await illustrate(message, state, summ_llm_answer, current_user_system_prompt[4].lower())
+        except Exception as e:
+            await message.answer("Error! Can't illustrate\n" + html.quote(str(e)), reply_markup = get_chat_kb())
 
 ##########################################################################################################################################################
 # Summarize text
 async def summarize_text(text: str, model: str = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", max_new_tokens: int = 1000) -> str:
     string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
-    debug_print("String to summarize", string_to_summarize)
+#    debug_print("String to summarize", string_to_summarize)
     summarized_text = await llm_answer_from_model(string_to_summarize,
                                                 [model],
                                                 max_new_tokens)
-    debug_print("Summarized text", summarized_text)
+#    debug_print("Summarized text", summarized_text)
     return summarized_text
 
 ##########################################################################################################################################################
@@ -178,14 +181,22 @@ async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, 
     result_image        = FSInputFile(result_image_path)
 
     await emoji_message.delete()
-    await message.answer_photo(result_image, picture_description[:980])
+
+    try:
+        await message.answer_photo(result_image, picture_description[:980])
+    except Exception as e:
+        await message.answer(f"Error! Can't send image\n'{picture_description}'\n{html.quote(str(e))}", reply_markup = get_chat_kb())
+
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
     result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
 
     await emoji_message.delete()
-    await message.answer_photo(result_image)
+    try:
+        await message.answer_photo(result_image)
+    except Exception as e:
+        await message.answer(f"Error! Can't send second image\n'{picture_description}'\n{html.quote(str(e))}", reply_markup = get_chat_kb())
 
     # Anime model
     # result_image_path   = await animagine_xl_2_0(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
