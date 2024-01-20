@@ -3,7 +3,7 @@ from openai import OpenAI
 
 api_key = os.getenv("OPENAI_API_KEY")
 
-async def gpt_3_5_turbo_1106(prompt_to_llm):
+def gpt_3_5_turbo_1106(prompt_to_llm):
 
     api_key = os.getenv("OPENAI_API_KEY")
     client = OpenAI(api_key=api_key)

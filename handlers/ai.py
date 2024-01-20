@@ -1,22 +1,22 @@
 from time import sleep
+import asyncio
 from aiogram import Router, html
 from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.chat_action import ChatActionSender
+# from aiogram.utils.chat_action import ChatActionSender
 # from aiogram.enums.chat_action import ChatAction
 # from aiogram.methods import SendChatAction
 #from aiogram import Bot
-from utility        import debug_print
+from utility        import debug_print, pin_user_settings
 
-from models.llm     import llm_answer_from_model
-from models.gguf    import llm_answer_from_gguf
-
+from models.llm_awq_gptq    import llm_answer_from_model
+from models.llm_gguf        import llm_answer_from_gguf
 from models.openai_chatgpt  import gpt_3_5_turbo_1106
 from models.playgroundai    import playground_v2_1024px_aesthetic
 from models.OpenDalleV1_1   import OpenDalleV1_1
 
-from handlers.main_menu     import main_menu
-from classes                import UIStates, bot
+from handlers.main_menu     import main_menu, command_start
+from classes                import UIStates
 from db.queries             import *
 from templating             import chat_template
 from keyboards.keyboards    import get_chat_kb
@@ -37,7 +37,8 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # TODO Use Sync to Async wrapper to avoid blocking
     # dp.message.middleware(ai.ai_middleware)
     # asgiref.sync.sync_to_async
-    # #Try to stop accepting messages while LLM is thinking
+
+    # Try to stop accepting messages while LLM is thinking
     # data = await state.get_data()
     # if "is_thinking" not in data:
     #     data = await state.update_data(is_thinking = False)
@@ -46,9 +47,6 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # if data["is_thinking"]:
     #     await message.reply("I'm still thinking at the first question, please be patient")
     #     return
-
-    # Emoji "Thinking..."
-    emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
     current_user_model = await select_user_llm_model(message.from_user.id)
 
@@ -72,104 +70,40 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
         message_to_llm = message.text
     debug_print("User input before templating: message_to_llm", message_to_llm)
 
-    # Template whole string to send depending on format
-    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
+    # Check if user input is None or Empty
+    if message_to_llm == None:
+        debug_print("User input is None, ignoring")
+        return
+    if len(message_to_llm) == 0:
+        debug_print("User input is Empty, ignoring")
+        return
 
     ###########################################################
     # Prepare prompt for LLM
     # make messages list from DB in STRING format
+    # Template whole string to send depending on format
+    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
+
+    # Emoji "Thinking..."
+    emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
     ###########################################################
     # Send prompt to LLM
-    # 5 tries to handle recoverable model Errors
+    # 2 tries to handle recoverable model Errors
+    loop = asyncio.get_event_loop()
+
     for i in range(1, 3):
         try:
-                # Stop accepting messages while LLM is thinking
-                # data = await state.update_data(is_thinking = True)
-                # TODO Use Sync to Async wrapper to avoid blocking
+            llm_answer = await loop.run_in_executor(None,
+                                                    get_llm_answer,
+                                                        prompt_to_llm,
+                                                        current_user_model,
+                                                        max_new_tokens
+                                                    )
+            # Stop accepting messages while LLM is thinking
+            # data = await state.update_data(is_thinking = True)
+            # TODO Use Sync to Async wrapper to avoid blocking
 
-            ###########################################
-            # Get llm_answer from LLM
-
-            ###########################################
-            # Chat-GPT 3.5
-            if current_user_model[0] == "gpt-3.5-turbo-1106":
-                llm_answer = await gpt_3_5_turbo_1106(prompt_to_llm)
-            elif ".gguf" in current_user_model[0]:
-                llm_answer, num_tokens = await llm_answer_from_gguf(
-                                                    prompt_to_llm,
-                                                    current_user_model,
-#                                                   current_user_system_prompt,
-                                                    max_new_tokens
-                                                )
-            elif ("AWQ" in current_user_model[0]) or ("GPTQ" in current_user_model[0]):
-                num_tokens = [""]
-                llm_answer = await llm_answer_from_model(
-                                        prompt_to_llm,
-                                        current_user_model,
-#                                       current_user_system_prompt,
-                                        max_new_tokens
-                                    )
-#                                       message,
-#                                       state)
-
-                # llm_answer = await AWQ_Mistral_7B_Instruct_pipe(prompt_to_llm, max_new_tokens)
-            ###########################################
-            # Mixtral-8x7B-Instruct
-            # elif current_user_model[0] == "TheBloke/Mixtral-8x7B-Instruct-v0.1-GPTQ":
-            #     # GPTQ quantized
-            #     llm_answer = await GPTQ_Mixtral_8x7B_Instruct_pipeline(prompt_to_llm, max_new_tokens)
-            ###########################################
-            # # Dolphin-2_2-yi-34b-AWQ
-            # elif current_user_model[0] == "TheBloke/dolphin-2_2-yi-34b-AWQ":
-            #     llm_answer = await AWQ_Dolphin_2_2_yi_34b_pipe(prompt_to_llm, max_new_tokens)
-            ###########################################
-            # LLaMA2_13B_Psyfighter2-AWQ
-            # elif current_user_model[0] == "TheBloke/LLaMA2-13B-Psyfighter2-AWQ":
-            #     llm_answer = await AWQ_LLaMA2_13B_Psyfighter2(prompt_to_llm, max_new_tokens)
-            # ###########################################
-            # # LLaMA2_13B_Tiefighter-AWQ
-            # elif current_user_model[0] == "TheBloke/LLaMA2-13B-Tiefighter-AWQ":
-            #     llm_answer = await AWQ_LLaMA2_13B_Tiefighter(prompt_to_llm, max_new_tokens)
-            ###########################################
-            # Aurora-Nights-70B-v1.0-AWQ
-            # elif current_user_model[0] == "TheBloke/Aurora-Nights-70B-v1.0-AWQ":
-            #     llm_answer = await AWQ_Aurora_Nights_70B_v1_0_pipe(prompt_to_llm, max_new_tokens)
-            ###########################################
-            # WizardLM-33B-V1.0-Uncensored-AWQ
-            # elif current_user_model[0] == "TheBloke/WizardLM-33B-V1.0-Uncensored-AWQ":
-            #     llm_answer = await WizardLM_33B_V1_0_AWQ(prompt_to_llm, max_new_tokens)
-            ###########################################
-            # Pygmalion-2-13B-AWQ
-# Start to add user question by itself on long input
-            # elif current_user_model[0] == "TheBloke/Pygmalion-2-13B-AWQ":
-            #     llm_answer = await Pygmalion_2_13B_AWQ(prompt_to_llm, max_new_tokens)
-
-
-
-
-
-                # Other not working models
-
-                # This IS NOT expected if you are initializing MixtralForCausalLM from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
-                # You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-                # OC is not multiple of cta_N = 64
-                # llm_answer = await AWQ_Mixtral_8x7B_Instruct(prompt_to_llm)
-                # llm_answer = await AWQ_Mixtral_8x7B_Instruct_pipe(prompt_to_llm)
-
-
-                # not working "Skipping module injection for FusedLlamaMLPForQuantizedModel as currently not supported with use_triton=False.""
-                #llm_answer = await GPTQ_Wizard_Vicuna_13B(prompt_to_llm)
-
-                # TypeError: object str can't be used in 'await' expression
-                #llm_answer = await GPTQ_Mixtral_8x7B_Instruct(prompt_to_llm)
-
-#             else:
-#                 await emoji_message.delete()
-#                 await message.answer("Error! No model selected\n" + str(current_user_model))
-# #                    llm_answer = "Error! No model selected\n" + str(current_user_model)
-#                 #await emoji_message.edit_text(llm_answer)
-#                 return
             break
         except (RuntimeError, ValueError) as e:
             # Print error message
@@ -178,18 +112,27 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
             else:
                 await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
                 return
-            sleep(6)
+            asyncio.sleep(3)
         except (TypeError, NameError, Exception) as e:
             await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
             return
+
+    # No need any more. TEST it!
     # Remove AI name from answer if any
     # if current_user_system_prompt[2] != "":
     #     llm_answer = str(llm_answer.split(f"{current_user_system_prompt[2]}:",1)[-1]).lstrip()
     #     debug_print("Splitting AI name from answer", current_user_system_prompt[2])
     # llm_answer = llm_answer.strip()
+
+
+    # Summarize llm_answer
+    summ_llm_answer = await summarize_text( text    = llm_answer,
+                                            model   = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ",
+                                            max_new_tokens = 128 )
+
     # Save to DB
-    await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm)
-    await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer)
+    await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm, summ_content = "")
+    await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer, summ_content = summ_llm_answer)
     await emoji_message.delete()
 #    await message.edit_text("💡")
     #await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
@@ -202,60 +145,106 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
-        await illustrate(message, state, llm_answer, current_user_system_prompt[4].lower())
+        try:
+            await illustrate(message, state, summ_llm_answer, current_user_system_prompt[4].lower())
+        except Exception as e:
+            await message.answer("Error! Can't illustrate\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+
+
+def get_llm_answer(prompt_to_llm, current_user_model, max_new_tokens):
+
+    ###########################################
+    # Chat-GPT 3.5
+    if current_user_model[0] == "gpt-3.5-turbo-1106":
+        llm_answer = gpt_3_5_turbo_1106(prompt_to_llm)
+    ###########################################
+    # GGUF model format
+    elif ".gguf" in current_user_model[0]:
+        llm_answer, num_tokens = llm_answer_from_gguf(
+                                            prompt_to_llm,
+                                            current_user_model,
+                                            max_new_tokens
+                                        )
+    ###########################################
+    # AWQ and GPTQ model formats
+    elif ("AWQ" in current_user_model[0]) or ("GPTQ" in current_user_model[0]):
+        num_tokens = [""]
+        llm_answer = llm_answer_from_model(
+                                prompt_to_llm,
+                                current_user_model,
+                                max_new_tokens
+                            )
+    return llm_answer
+
+
 
 ##########################################################################################################################################################
+# Summarize text
+async def summarize_text(text: str, model: str = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", max_new_tokens: int = 1000) -> str:
+    loop = asyncio.get_event_loop()
+    string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
+#    debug_print("String to summarize", string_to_summarize)
+    summarized_text = await loop.run_in_executor(None,
+                                                 llm_answer_from_model,
+                                                    string_to_summarize,
+                                                    [model],
+                                                    max_new_tokens
+                                                )
+#    debug_print("Summarized text", summarized_text)
+    return summarized_text
 
 ##########################################################################################################################################################
 # Illustrate the answer
-async def illustrate(message: Message, state: FSMContext, llm_answer: str, game_type: str) -> None:
-    max_new_tokens      = 128
+async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, game_type: str) -> None:
     num_inference_steps = 70
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
-    # Summarize llm_answer for picture description
-    description_prompt  = "Summarize description: '"
-    picture_description = await llm_answer_from_model(description_prompt + llm_answer + "' Very short summary:",
-                                                ["TheBloke/Mistral-7B-Instruct-v0.2-AWQ"],
-                                                max_new_tokens)
-#    picture_description = await AWQ_Mistral_7B_Instruct_pipe(description_prompt + llm_answer + "' Very short summary:", max_new_tokens)
-
-    picture_description_cut = game_type.replace("game", "") + " " + str(picture_description.split("\n")[0]).strip()
-    debug_print("Summarized picture description", picture_description_cut)
+    picture_description = game_type.replace("game", "") + " " + str(summ_llm_answer.split("\n")[0]).strip()
+    debug_print("Picture description", picture_description)
 
     # playground accepts only 77 tokens
-    result_image_path   = await OpenDalleV1_1(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image_path   = await OpenDalleV1_1(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
+
     await emoji_message.delete()
-    await message.answer_photo(result_image, picture_description_cut[:980])
 
-    # Try different styles
-    # result_image_path   = await OpenDalleV1_1(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-    # result_image        = FSInputFile(result_image_path)
-    # await message.answer_photo(result_image, "OD drawing")
+    try:
+        await message.answer_photo(result_image, picture_description[:980])
+    except Exception as e:
+        await message.answer(f"Error! Can't send image\n'{picture_description}'\n{html.quote(str(e))}", reply_markup = get_chat_kb())
 
-    # result_image_path   = await OpenDalleV1_1(prompt = "fiction, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-    # result_image        = FSInputFile(result_image_path)
-    # await message.answer_photo(result_image, "OD fiction")
 
-#     result_image_path   = await animagine_xl_2_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=80)
-# #    result_image_path   = await stable_diffusion_xl_base_1_0(prompt = picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-#     result_image        = FSInputFile(result_image_path)
-# #    await emoji_message.delete()
-#     await message.answer_photo(result_image, "animagine_xl_2_0")
-
-    result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description_cut, file_path="data/generated_images", n_steps=num_inference_steps)
+    emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
+    result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
     result_image        = FSInputFile(result_image_path)
-    await message.answer_photo(result_image)
 
-    # Try different styles
-    # result_image_path   = await playground_v2_1024px_aesthetic(prompt = "drawing, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-    # result_image        = FSInputFile(result_image_path)
-    # await message.answer_photo(result_image, "pg drawing")
+    await emoji_message.delete()
+    try:
+        await message.answer_photo(result_image)
+    except Exception as e:
+        await message.answer(f"Error! Can't send second image\n'{picture_description}'\n{html.quote(str(e))}", reply_markup = get_chat_kb())
 
-    # result_image_path   = await playground_v2_1024px_aesthetic(prompt = "fiction, " + picture_description_cut2, file_path="data/generated_images", n_steps=num_inference_steps)
-    # result_image        = FSInputFile(result_image_path)
-    # await message.answer_photo(result_image, "pg fiction")
+    # Anime model
+    # result_image_path   = await animagine_xl_2_0(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
 
     await main_menu(message, state)
+
+##########################################################################################################################################################
+# All other messages
+@router.message()
+async def other_messages(message: Message, state: FSMContext) -> None:
+    current_state = await state.get_state()
+    debug_print("Current state", current_state)
+    if current_state is None:
+        await state.set_state(UIStates.chat)
+
+#        await message.answer("Can you repeat, please?", reply_markup = get_chat_kb())
+#    await pin_user_settings(message)
+
+#    await pin_user_settings(message)
+#    await main_menu(message, state)
+
+#     # await state.set_state(UIStates.chat)
+#     # return
+        await send_to_llm(message, state)

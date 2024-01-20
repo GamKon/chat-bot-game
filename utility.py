@@ -1,10 +1,8 @@
 from aiogram.types import Message
 from aiogram import html
 from classes import bot
-from db.queries import select_user_settings, select_system_prompt
+from db.queries import select_user_settings
 from aiogram.enums import ParseMode
-#from keyboards.keyboards import get_chat_kb
-#from handlers.main_menu import main_menu
 
 ##########################################################################################################################################################
 # Pin User settings
@@ -45,10 +43,9 @@ def get_number_emoji(emoji: str) -> int:
 
 ##########################################################################################################################################################
 # Debug print
-def debug_print(header: str, content) -> None:
+def debug_print(header: str, content = "#No Value#") -> None:
         print("\n######################################################################")
         print(f"# {header}")
         print("######################################################################")
         print(content)
         print("######################################################################\n")
-##########################################################################################################################################################

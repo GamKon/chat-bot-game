@@ -2,15 +2,16 @@ from utility import debug_print
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer, TextIteratorStreamer, pipeline
 
+from auto_gptq import exllama_set_max_input_length
 
-async def llm_answer_from_model(prompt_to_llm,
+def llm_answer_from_model(prompt_to_llm,
                                 current_user_model,
                                 max_new_tokens):
     debug_print(f"prompt TO {current_user_model[0]}", prompt_to_llm)
 
     tokenizer = AutoTokenizer.from_pretrained(current_user_model[0], trust_remote_code=True)
 
-    revision = "gptq-4bit-32g-actorder_True"
+    revision = "gptq-4bit-128g-actorder_True"
 
     if "GPTQ" in current_user_model[0]:
         model = AutoModelForCausalLM.from_pretrained(
@@ -21,6 +22,7 @@ async def llm_answer_from_model(prompt_to_llm,
             revision=revision
     #        cache_dir="/home/user/models/"
         )
+#        model = exllama_set_max_input_length(model, 8192)
     else:
         model = AutoModelForCausalLM.from_pretrained(
             current_user_model[0],
@@ -45,6 +47,14 @@ async def llm_answer_from_model(prompt_to_llm,
         "max_new_tokens": max_new_tokens,
         "repetition_penalty": 1.1
     }
+
+    # instance = {
+    #     "input_ids": tokens,
+    #     "top_p": 1.0,
+    #     "temperature": 0.75,
+    #     "generate_len": 1024,
+    #     "top_k": 50,
+    # }
 ##########################################################################################################################################################
     # Capture the output from the stdout
     import sys
@@ -69,8 +79,8 @@ async def llm_answer_from_model(prompt_to_llm,
     debug_print(f"Stdout RAW LLM reply from {current_user_model[0]}", llm_reply_stdout)
 
     length_str = len(str("".join(llm_reply_stdout.splitlines())).strip())
-    debug_print("Length_str", length_str)
-    if len(str("".join(llm_reply_stdout.splitlines())).strip()) == 0:
+    # debug_print("Length_str", length_str)
+    if length_str == 0:
         raise Exception("LLM reply is empty")
 
     return llm_reply_stdout
@@ -95,5 +105,3 @@ async def llm_answer_from_model(prompt_to_llm,
     #     llm_reply = str(llm_reply_full.split('[/INST]')[-1]).split('</s>')[0]
 
     # debug_print(f"EXTRACTED LLM reply from {current_user_model[0]}", llm_reply)
-
-

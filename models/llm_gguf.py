@@ -1,7 +1,7 @@
 from utility import debug_print
 from llama_cpp import Llama
 
-async def llm_answer_from_gguf(prompt_to_llm,
+def llm_answer_from_gguf(prompt_to_llm,
                                 current_user_model,
                                 max_new_tokens):
     debug_print(f"prompt TO {current_user_model[0]}", prompt_to_llm)
@@ -9,7 +9,7 @@ async def llm_answer_from_gguf(prompt_to_llm,
     # Set gpu_layers to the number of layers to offload to GPU. Set to 0 if no GPU acceleration is available on your system.
 
     llm = Llama(
-        model_path   = f"/home/user/.cache/huggingface/hub/{current_user_model[0]}",#"+current_user_model[0],  # Download the model file first
+        model_path   = f"/home/user/.cache/huggingface/{current_user_model[0]}",#"+current_user_model[0],  # Download the model file first
         n_ctx        = 32768,  # The max sequence length to use - note that longer sequence lengths require much more resources
         n_threads    = 12,     # The number of CPU threads to use, tailor to your system and the resulting performance
         n_gpu_layers = -1      # The number of layers to offload to GPU, if you have GPU acceleration available

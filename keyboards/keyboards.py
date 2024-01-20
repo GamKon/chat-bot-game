@@ -16,7 +16,7 @@ def get_chat_options_kb() -> ReplyKeyboardMarkup:
     kb.button( text = "✏️ Clear last" )
     kb.button( text = "📋 Choose chat" )
     # kb.button( text = "Repeat question" )
-    kb.button( text = "🚧 Clear chat" )
+    kb.button( text = "☠️ Clear chat" )
     kb.button( text = "❌ Cancel" )
     kb.adjust(3,3)
     return kb.as_markup(resize_keyboard = True, onetime_keyboard = False, input_field_placeholder = "Choose option")

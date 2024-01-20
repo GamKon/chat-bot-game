@@ -93,7 +93,7 @@ async def chat_show_history(message: Message, state: FSMContext) -> None:
 ##########################################################################################################################################################
 # Reset confirm
 @router.message(Command("erase"))
-@router.message(UIStates.menu, F.text.casefold() == "🚧 clear chat")
+@router.message(UIStates.menu, F.text.casefold() == "☠️ clear chat")
 async def chat_reset_confirm(message: Message, state: FSMContext) -> None:
     await message.answer("⚠️ <b>All history will be deleted!</b> ⚠️", reply_markup = get_confirm_kb(), parse_mode="HTML")
     await state.set_state( UIStates.menu_confirm )
@@ -103,7 +103,7 @@ async def chat_reset_confirm(message: Message, state: FSMContext) -> None:
 async def chat_reset(message: Message, state: FSMContext) -> None:
     if message.text.casefold() == "✅ ok":
         await delete_all_messages(user_id = message.from_user.id)
-        await message.answer("<i>Cleared ☠️ You may start over.</i>", reply_markup=get_chat_kb(), parse_mode="HTML")
+        await message.answer("<i>Cleared You may start over.</i>", reply_markup=get_chat_kb(), parse_mode="HTML")
         await state.set_state( UIStates.chat )
     else:
         await message.answer("👍 Cancel. Keep going.", reply_markup=get_chat_kb())

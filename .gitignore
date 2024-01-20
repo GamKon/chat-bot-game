@@ -4,9 +4,8 @@ aiogram
 alembic
 old
 llama
-llama_cpp
 llama_cpp_compute*
-
+misc
 alembic.ini
 my_notes
 # Environment variable files
