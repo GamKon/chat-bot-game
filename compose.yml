@@ -15,6 +15,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       # Disable tensorflow warnings
       - TF_CPP_MIN_LOG_LEVEL
+      - HF_HOME=/home/user/.cache/huggingface
     deploy:
       resources:
         reservations:

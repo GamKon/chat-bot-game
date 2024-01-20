@@ -4,7 +4,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer, Text
 
 from auto_gptq import exllama_set_max_input_length
 
-async def llm_answer_from_model(prompt_to_llm,
+def llm_answer_from_model(prompt_to_llm,
                                 current_user_model,
                                 max_new_tokens):
     debug_print(f"prompt TO {current_user_model[0]}", prompt_to_llm)
@@ -105,5 +105,3 @@ async def llm_answer_from_model(prompt_to_llm,
     #     llm_reply = str(llm_reply_full.split('[/INST]')[-1]).split('</s>')[0]
 
     # debug_print(f"EXTRACTED LLM reply from {current_user_model[0]}", llm_reply)
-
-

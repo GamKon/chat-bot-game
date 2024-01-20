@@ -23,11 +23,11 @@ router = Router()
 ##########################################################################################################################################################
 # Start and help
 @router.message(CommandStart())
-#@router.message(CommandHelp())
+@router.message(Command("help"))
 async def command_start( message: Message, state: FSMContext ) -> None:
     await state.set_state( UIStates.chat )
     # Set status to default
-    # data = await state.update_data(is_thinking = False)
+    data = await state.update_data(is_thinking = False)
     try:
         # Check if user exists in DB
         result = await show_user(user_id = message.from_user.id)
@@ -65,7 +65,7 @@ async def command_start( message: Message, state: FSMContext ) -> None:
 # Main menu
 async def main_menu(message: Message, state: FSMContext) -> None:
     await state.set_state(UIStates.chat)
-    await message.answer("<i>What's next?</i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
+    await message.answer("<i>What's on your mind?</i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
 ##########################################################################################################################################################
 # Chat Menu
 @router.message(Command("menu"))
