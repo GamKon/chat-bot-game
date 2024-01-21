@@ -105,10 +105,6 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                                                         current_user_model,
                                                         max_new_tokens
                                                     )
-            # Stop accepting messages while LLM is thinking
-            # data = await state.update_data(is_thinking = True)
-            # TODO Use Sync to Async wrapper to avoid blocking
-
             break
         except (RuntimeError, ValueError) as e:
             # Print error message
@@ -132,8 +128,9 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     # Summarize llm_answer
     summ_llm_answer = await summarize_text( text    = llm_answer,
+                                            state   = state,
                                             model   = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ",
-                                            max_new_tokens = 128 )
+                                            max_new_tokens = 128)
 
     # Save to DB
     await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm, summ_content = "")
@@ -194,7 +191,13 @@ def get_llm_answer(prompt_to_llm, current_user_model, max_new_tokens):
 
 ##########################################################################################################################################################
 # Summarize text
-async def summarize_text(text: str, model: str = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", max_new_tokens: int = 1000) -> str:
+async def summarize_text(text: str, state: FSMContext, model: str = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", max_new_tokens: int = 1000) -> str:
+
+    ###########################################################
+    # Stop accepting messages while LLM is thinking
+    # Set is_thinking to True
+    data = await state.update_data(is_thinking = True)
+
     loop = asyncio.get_event_loop()
     string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
 #    debug_print("String to summarize", string_to_summarize)
@@ -205,6 +208,12 @@ async def summarize_text(text: str, model: str = "TheBloke/Mistral-7B-Instruct-v
                                                     max_new_tokens
                                                 )
 #    debug_print("Summarized text", summarized_text)
+
+    ###########################################################
+    # Start accepting messages again
+    # Set is_thinking to False
+    data = await state.update_data(is_thinking = False)
+
     return summarized_text
 
 ##########################################################################################################################################################

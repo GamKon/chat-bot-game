@@ -53,6 +53,12 @@ async def generate_image(message: Message, state: FSMContext) -> None:
 async def generate_image(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         await state.set_state( UIStates.chat )
+
+        ###########################################################
+        # Stop accepting messages while LLM is thinking
+        # Set is_thinking to True
+        data = await state.update_data(is_thinking = True)
+
         emoji_message = await message.answer("🎨", reply_markup = get_chat_kb())
         num_inference_steps = 60
         loop = asyncio.get_event_loop()
@@ -65,6 +71,12 @@ async def generate_image(message: Message, state: FSMContext) -> None:
         result_image = FSInputFile(result_image_path)
         await emoji_message.delete()
         await message.answer_photo(result_image, message.text[:70])
+
+        ###########################################################
+        # Start accepting messages again
+        # Set is_thinking to False
+        data = await state.update_data(is_thinking = False)
+
     await main_menu(message, state)
 
 ##########################################################################################################################################################
@@ -77,12 +89,30 @@ async def generate_image(message: Message, state: FSMContext) -> None:
 async def generate_image(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         await state.set_state( UIStates.chat )
+
+        ###########################################################
+        # Stop accepting messages while LLM is thinking
+        # Set is_thinking to True
+        data = await state.update_data(is_thinking = True)
+
         emoji_message = await message.answer("🎨", reply_markup = get_chat_kb())
         num_inference_steps = 60
-        result_image_path = await playground_v2_1024px_aesthetic(prompt = message.text, file_path="data/generated_images", n_steps=num_inference_steps)
+        loop = asyncio.get_event_loop()
+        result_image_path = await loop.run_in_executor(None,
+                                                       playground_v2_1024px_aesthetic,
+                                                       message.text,
+                                                       "data/generated_images",
+                                                       num_inference_steps
+                                                      )
         result_image = FSInputFile(result_image_path)
         await emoji_message.delete()
         await message.answer_photo(result_image, message.text[:70])
+
+        ###########################################################
+        # Start accepting messages again
+        # Set is_thinking to False
+        data = await state.update_data(is_thinking = False)
+
     await main_menu(message, state)
 
 ##########################################################################################################################################################
@@ -95,12 +125,30 @@ async def generate_image(message: Message, state: FSMContext) -> None:
 async def generate_image(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         await state.set_state( UIStates.chat )
+
+        ###########################################################
+        # Stop accepting messages while LLM is thinking
+        # Set is_thinking to True
+        data = await state.update_data(is_thinking = True)
+
         emoji_message = await message.answer("🎨", reply_markup = get_chat_kb())
         num_inference_steps = 60
-        result_image_path = await stable_diffusion_xl_base_refiner_1_0(prompt = message.text, file_path="data/generated_images", n_steps=num_inference_steps)
+        loop = asyncio.get_event_loop()
+        result_image_path = await loop.run_in_executor(None,
+                                                       stable_diffusion_xl_base_refiner_1_0,
+                                                       message.text,
+                                                       "data/generated_images",
+                                                       num_inference_steps
+                                                    )
         result_image = FSInputFile(result_image_path)
         await emoji_message.delete()
         await message.answer_photo(result_image, message.text[:70])
+
+        ###########################################################
+        # Start accepting messages again
+        # Set is_thinking to False
+        data = await state.update_data(is_thinking = False)
+
     await main_menu(message, state)
 
 ##########################################################################################################################################################
@@ -114,7 +162,7 @@ async def summarize_text_command(message: Message, state: FSMContext) -> None:
     if message.text.casefold() != "❌ cancel":
         emoji_message = await message.answer("✍️", reply_markup = get_chat_kb())
 
-        summary = await summarize_text(message.text)
+        summary = await summarize_text(state, message.text)
 
         await emoji_message.delete()
 

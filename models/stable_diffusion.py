@@ -8,7 +8,7 @@ import torch
 
 ##########################################################################################################################################################
 # base pipeline
-async def stable_diffusion_xl_base_1_0(prompt, file_path, n_steps: int):
+def stable_diffusion_xl_base_1_0(prompt, file_path, n_steps: int):
     pipe = DiffusionPipeline.from_pretrained(
         "stabilityai/stable-diffusion-xl-base-1.0",
         torch_dtype=torch.float16,
@@ -43,7 +43,7 @@ async def stable_diffusion_xl_base_1_0(prompt, file_path, n_steps: int):
 
 ##########################################################################################################################################################
 # base + refiner pipeline
-async def stable_diffusion_xl_base_refiner_1_0(prompt, file_path, n_steps:int):
+def stable_diffusion_xl_base_refiner_1_0(prompt, file_path, n_steps:int):
     # load both base & refiner
     base = DiffusionPipeline.from_pretrained(
         "stabilityai/stable-diffusion-xl-base-1.0",
