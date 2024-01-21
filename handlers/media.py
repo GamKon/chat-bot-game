@@ -1,3 +1,4 @@
+import asyncio
 from aiogram import Router, F, Bot
 from aiogram.types import Message, FSInputFile, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
@@ -54,7 +55,13 @@ async def generate_image(message: Message, state: FSMContext) -> None:
         await state.set_state( UIStates.chat )
         emoji_message = await message.answer("🎨", reply_markup = get_chat_kb())
         num_inference_steps = 60
-        result_image_path = await OpenDalleV1_1(prompt = message.text, file_path="data/generated_images", n_steps=num_inference_steps)
+        loop = asyncio.get_event_loop()
+        result_image_path = await loop.run_in_executor(None,
+                                                        playground_v2_1024px_aesthetic,
+                                                        message.text,
+                                                        "data/generated_images",
+                                                        num_inference_steps
+                                                        )
         result_image = FSInputFile(result_image_path)
         await emoji_message.delete()
         await message.answer_photo(result_image, message.text[:70])

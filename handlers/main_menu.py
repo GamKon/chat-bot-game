@@ -13,8 +13,6 @@ from db.queries import *
 from classes import UIStates
 from utility import pin_user_settings
 
-
-
 router = Router()
 ##########################################################################################################################################################
 # Main menu
@@ -27,7 +25,7 @@ router = Router()
 async def command_start( message: Message, state: FSMContext ) -> None:
     await state.set_state( UIStates.chat )
     # Set status to default
-    data = await state.update_data(is_thinking = False)
+#    data = await state.update_data(is_thinking = False)
     try:
         # Check if user exists in DB
         result = await show_user(user_id = message.from_user.id)

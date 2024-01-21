@@ -5,7 +5,7 @@ from diffusers import AutoPipelineForText2Image
 import torch
 
 
-async def OpenDalleV1_1(prompt: str, file_path, n_steps: int):
+def OpenDalleV1_1(prompt: str, file_path, n_steps: int):
 
     pipeline = AutoPipelineForText2Image.from_pretrained(
         'dataautogpt3/OpenDalleV1.1',

@@ -21,17 +21,19 @@ async def on_shutdown():
 #     await bot.close()
 #     await db_pool.close()
 
-# class ThrottleWhileThinking(BaseMiddleware):
-#     async def __call__(self, handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]], event: types.Message, data: Dict[str, Any]) -> Any:
-#         state = data.get("state")
-#         state_data = await state.get_data()
+class ThrottleWhileThinking(BaseMiddleware):
+    async def __call__(self, handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]], event: types.Message, data: Dict[str, Any]) -> Any:
+        state = data.get("state")
+#        debug_print("state: ", state)
 
+        state_data = await state.get_data()
+        debug_print("state_data: ", state_data)
 
-#         debug_print("state_data: ", state_data)
-#         if True: # "is_thinking" not in data:
-#             return await event.reply("I'm still thinking at the first question, please be patient")
+        if state_data.get("is_thinking") == True:
+#        True: # "is_thinking" not in data:
+            return await event.reply("Please be patient, I'm thinking...")
 
-#         return await handler(event, data)
+        return await handler(event, data)
 
     # if "is_thinking" not in data:
     #     data = await state.update_data(is_thinking = False)
@@ -53,7 +55,7 @@ router = Router()
 async def main():
 #    bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
     dp  = Dispatcher()
-    # dp.message.middleware(ThrottleWhileThinking())
+    dp.message.middleware(ThrottleWhileThinking())
     dp.include_routers(router, media.router, main_menu.router, chat_menu.router, system_menu.router, ai.router)
 
     await bot.delete_webhook(drop_pending_updates=True)

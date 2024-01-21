@@ -38,14 +38,14 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # dp.message.middleware(ai.ai_middleware)
     # asgiref.sync.sync_to_async
 
-    # Try to stop accepting messages while LLM is thinking
-    # data = await state.get_data()
-    # if "is_thinking" not in data:
-    #     data = await state.update_data(is_thinking = False)
-    # else:
-    #     print("______is_thinking in data______\n")
-    # if data["is_thinking"]:
-    #     await message.reply("I'm still thinking at the first question, please be patient")
+    # Stop accepting messages while LLM is thinking
+    data = await state.get_data()
+    if "is_thinking" not in data:
+        data = await state.update_data(is_thinking = False)
+    else:
+        debug_print("______is_thinking in data______\n")
+    #if data["is_thinking"]:
+    #    await message.reply("I'm still thinking at the first question, please be patient")
     #     return
 
     current_user_model = await select_user_llm_model(message.from_user.id)
@@ -83,6 +83,11 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # make messages list from DB in STRING format
     # Template whole string to send depending on format
     prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
+
+    ###########################################################
+    # Stop accepting messages while LLM is thinking
+    # Set is_thinking to True
+    data = await state.update_data(is_thinking = True)
 
     # Emoji "Thinking..."
     emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
@@ -146,9 +151,18 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
         try:
+
+
             await illustrate(message, state, summ_llm_answer, current_user_system_prompt[4].lower())
+
+
         except Exception as e:
             await message.answer("Error! Can't illustrate\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+
+    ###########################################################
+    # Start accepting messages again
+    # Set is_thinking to False
+    data = await state.update_data(is_thinking = False)
 
 
 def get_llm_answer(prompt_to_llm, current_user_model, max_new_tokens):
@@ -203,8 +217,15 @@ async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, 
     picture_description = game_type.replace("game", "") + " " + str(summ_llm_answer.split("\n")[0]).strip()
     debug_print("Picture description", picture_description)
 
+    loop = asyncio.get_event_loop()
+
     # playground accepts only 77 tokens
-    result_image_path   = await OpenDalleV1_1(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image_path   = await loop.run_in_executor(None,
+                                                     OpenDalleV1_1,
+                                                     picture_description,
+                                                     "data/generated_images",
+                                                     num_inference_steps
+                                                    )
     result_image        = FSInputFile(result_image_path)
 
     await emoji_message.delete()
@@ -216,7 +237,12 @@ async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, 
 
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
-    result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image_path   = await loop.run_in_executor(None,
+                                                     playground_v2_1024px_aesthetic,
+                                                     picture_description,
+                                                     "data/generated_images",
+                                                     num_inference_steps
+                                                     )
     result_image        = FSInputFile(result_image_path)
 
     await emoji_message.delete()
