@@ -135,7 +135,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
         num_inference_steps = 60
         loop = asyncio.get_event_loop()
         result_image_path = await loop.run_in_executor(None,
-                                                       stable_diffusion_xl_base_refiner_1_0,
+                                                       stable_diffusion_xl_base_1_0,
                                                        message.text,
                                                        "data/generated_images",
                                                        num_inference_steps

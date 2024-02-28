@@ -42,8 +42,8 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     data = await state.get_data()
     if "is_thinking" not in data:
         data = await state.update_data(is_thinking = False)
-    else:
-        debug_print("______is_thinking in data______\n")
+    # else:
+    #     debug_print("______is_thinking in data______\n")
     #if data["is_thinking"]:
     #    await message.reply("I'm still thinking at the first question, please be patient")
     #     return
@@ -99,7 +99,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     for i in range(1, 3):
         try:
-            llm_answer = await loop.run_in_executor(None,
+            llm_answer, num_tokens = await loop.run_in_executor(None,
                                                     get_llm_answer,
                                                         prompt_to_llm,
                                                         current_user_model,
@@ -111,11 +111,21 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
             if i < 2:
                 await message.answer("Still thinking...\n" + html.quote(str(e)) + "\nRetry #" + str(i))
             else:
+                await emoji_message.delete()
                 await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+                ###########################################################
+                # Start accepting messages again
+                # Set is_thinking to False
+                data = await state.update_data(is_thinking = False)
                 return
             asyncio.sleep(3)
         except (TypeError, NameError, Exception) as e:
+            await emoji_message.delete()
             await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+            ###########################################################
+            # Start accepting messages again
+            # Set is_thinking to False
+            data = await state.update_data(is_thinking = False)
             return
 
     # No need any more. TEST it!
@@ -141,7 +151,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     if len(llm_answer) > 4096:
         llm_answer = llm_answer[:4000] + "...truncated..."
     try:
-        await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
+        await message.answer(html.quote(llm_answer + "\n" + str(num_tokens)), reply_markup = get_chat_kb())
     except Exception as e:
         await message.answer("Error! Can't send message\n" + html.quote(str(e)), reply_markup = get_chat_kb())
     # Illustrate if 'game' in Model.name
@@ -185,7 +195,7 @@ def get_llm_answer(prompt_to_llm, current_user_model, max_new_tokens):
                                 current_user_model,
                                 max_new_tokens
                             )
-    return llm_answer
+    return llm_answer, num_tokens
 
 
 

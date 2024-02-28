@@ -27,7 +27,7 @@ class ThrottleWhileThinking(BaseMiddleware):
 #        debug_print("state: ", state)
 
         state_data = await state.get_data()
-        debug_print("state_data: ", state_data)
+#        debug_print("state_data: ", state_data)
 
         if state_data.get("is_thinking") == True:
 #        True: # "is_thinking" not in data:
