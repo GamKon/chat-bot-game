@@ -9,17 +9,18 @@ from aiogram.fsm.context import FSMContext
 #from aiogram import Bot
 from utility        import debug_print, pin_user_settings
 
-from models.llm_awq_gptq    import llm_answer_from_model
-from models.llm_gguf        import llm_answer_from_gguf
-from models.openai_chatgpt  import gpt_3_5_turbo_1106
-from models.playgroundai    import playground_v2_1024px_aesthetic
-from models.OpenDalleV1_1   import OpenDalleV1_1
+from models.llm_awq_gptq     import llm_answer_from_model
+from models.llm_gguf         import llm_answer_from_gguf
+from models.openai_chatgpt   import gpt_3_5_turbo_1106
+from models.playgroundai     import playground_v2_1024px_aesthetic
+from models.OpenDalleV1_1    import OpenDalleV1_1
+from models.stable_diffusion import stable_diffusion_xl_base_1_0
 
-from handlers.main_menu     import main_menu, command_start
-from classes                import UIStates
-from db.queries             import *
-from templating             import chat_template
-from keyboards.keyboards    import get_chat_kb
+from handlers.main_menu      import main_menu, command_start
+from classes                 import UIStates
+from db.queries              import *
+from templating              import chat_template
+from keyboards.keyboards     import get_chat_kb
 
 router = Router()
 
@@ -240,10 +241,11 @@ async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, 
 
     # playground accepts only 77 tokens
     result_image_path   = await loop.run_in_executor(None,
-                                                     OpenDalleV1_1,
-                                                     picture_description,
-                                                     "data/generated_images",
-                                                     num_inference_steps
+#                                                    OpenDalleV1_1,
+                                                    stable_diffusion_xl_base_1_0,
+                                                    picture_description,
+                                                    "data/generated_images",
+                                                    num_inference_steps
                                                     )
     result_image        = FSInputFile(result_image_path)
 
