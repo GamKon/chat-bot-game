@@ -5,7 +5,7 @@ from diffusers import DiffusionPipeline
 import torch
 
 
-async def playground_v2_1024px_aesthetic(prompt: str, file_path, n_steps: int):
+def playground_v2_1024px_aesthetic(prompt: str, file_path, n_steps: int):
 
     pipe = DiffusionPipeline.from_pretrained(
         "playgroundai/playground-v2-1024px-aesthetic",

@@ -81,7 +81,7 @@ COPY ./templating.py ./
 COPY ./utility.py ./
 
 # Copy precompiled llama_cpp_python with CUDA GPU support
-#COPY ./llama_cpp/ /usr/local/lib/python3.11/site-packages/llama_cpp/
+COPY ./llama_cpp/ /usr/local/lib/python3.11/site-packages/llama_cpp/
 
 # RUN chown -R user:user /app
 # RUN chown -R user:user /home/user

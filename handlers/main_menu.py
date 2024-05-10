@@ -12,8 +12,7 @@ from keyboards.keyboards import *
 from db.queries import *
 from classes import UIStates
 from utility import pin_user_settings
-
-
+from handlers.system_menu import sys_change_chat_persona, main_menu
 
 router = Router()
 ##########################################################################################################################################################
@@ -27,7 +26,7 @@ router = Router()
 async def command_start( message: Message, state: FSMContext ) -> None:
     await state.set_state( UIStates.chat )
     # Set status to default
-    data = await state.update_data(is_thinking = False)
+#    data = await state.update_data(is_thinking = False)
     try:
         # Check if user exists in DB
         result = await show_user(user_id = message.from_user.id)
@@ -49,8 +48,8 @@ async def command_start( message: Message, state: FSMContext ) -> None:
         # Get detailed user status
         result = await user_status(user_id = message.from_user.id)
         if result != None:
-            await pin_user_settings(message)
-            await main_menu(message, state)
+#            await message.answer("<i>Whom would you like me to be?</i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
+            await sys_change_chat_persona(message, state)
         else:
             print("Error! User has no status")
             raise Exception("User has no status")
@@ -61,11 +60,11 @@ async def command_start( message: Message, state: FSMContext ) -> None:
         await message.answer("⛔ Something went wrong, please try again later", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
         return
 
-##########################################################################################################################################################
-# Main menu
-async def main_menu(message: Message, state: FSMContext) -> None:
-    await state.set_state(UIStates.chat)
-    await message.answer("<i>What's on your mind?</i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
+# ##########################################################################################################################################################
+# # Main menu
+# async def main_menu(message: Message, state: FSMContext) -> None:
+#     await state.set_state(UIStates.chat)
+#     await message.answer("<i>What's on your mind?</i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
 ##########################################################################################################################################################
 # Chat Menu
 @router.message(Command("menu"))

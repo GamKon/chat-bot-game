@@ -9,17 +9,18 @@ from aiogram.fsm.context import FSMContext
 #from aiogram import Bot
 from utility        import debug_print, pin_user_settings
 
-from models.llm_awq_gptq    import llm_answer_from_model
-from models.llm_gguf        import llm_answer_from_gguf
-from models.openai_chatgpt  import gpt_3_5_turbo_1106
-from models.playgroundai    import playground_v2_1024px_aesthetic
-from models.OpenDalleV1_1   import OpenDalleV1_1
+from models.llm_awq_gptq     import llm_answer_from_model
+from models.llm_gguf         import llm_answer_from_gguf
+from models.openai_chatgpt   import gpt_3_5_turbo_1106
+from models.playgroundai     import playground_v2_1024px_aesthetic
+from models.OpenDalleV1_1    import OpenDalleV1_1
+from models.stable_diffusion import stable_diffusion_xl_base_1_0
 
-from handlers.main_menu     import main_menu, command_start
-from classes                import UIStates
-from db.queries             import *
-from templating             import chat_template
-from keyboards.keyboards    import get_chat_kb
+from handlers.main_menu      import main_menu, command_start
+from classes                 import UIStates
+from db.queries              import *
+from templating              import chat_template
+from keyboards.keyboards     import get_chat_kb
 
 router = Router()
 
@@ -38,14 +39,14 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # dp.message.middleware(ai.ai_middleware)
     # asgiref.sync.sync_to_async
 
-    # Try to stop accepting messages while LLM is thinking
-    # data = await state.get_data()
-    # if "is_thinking" not in data:
-    #     data = await state.update_data(is_thinking = False)
+    # Stop accepting messages while LLM is thinking
+    data = await state.get_data()
+    if "is_thinking" not in data:
+        data = await state.update_data(is_thinking = False)
     # else:
-    #     print("______is_thinking in data______\n")
-    # if data["is_thinking"]:
-    #     await message.reply("I'm still thinking at the first question, please be patient")
+    #     debug_print("______is_thinking in data______\n")
+    #if data["is_thinking"]:
+    #    await message.reply("I'm still thinking at the first question, please be patient")
     #     return
 
     current_user_model = await select_user_llm_model(message.from_user.id)
@@ -84,6 +85,11 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # Template whole string to send depending on format
     prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
 
+    ###########################################################
+    # Stop accepting messages while LLM is thinking
+    # Set is_thinking to True
+    data = await state.update_data(is_thinking = True)
+
     # Emoji "Thinking..."
     emoji_message = await message.answer("🤔", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 
@@ -94,27 +100,33 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     for i in range(1, 3):
         try:
-            llm_answer = await loop.run_in_executor(None,
+            llm_answer, num_tokens = await loop.run_in_executor(None,
                                                     get_llm_answer,
                                                         prompt_to_llm,
                                                         current_user_model,
                                                         max_new_tokens
                                                     )
-            # Stop accepting messages while LLM is thinking
-            # data = await state.update_data(is_thinking = True)
-            # TODO Use Sync to Async wrapper to avoid blocking
-
             break
         except (RuntimeError, ValueError) as e:
             # Print error message
             if i < 2:
                 await message.answer("Still thinking...\n" + html.quote(str(e)) + "\nRetry #" + str(i))
             else:
+                await emoji_message.delete()
                 await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+                ###########################################################
+                # Start accepting messages again
+                # Set is_thinking to False
+                data = await state.update_data(is_thinking = False)
                 return
             asyncio.sleep(3)
         except (TypeError, NameError, Exception) as e:
+            await emoji_message.delete()
             await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+            ###########################################################
+            # Start accepting messages again
+            # Set is_thinking to False
+            data = await state.update_data(is_thinking = False)
             return
 
     # No need any more. TEST it!
@@ -127,8 +139,9 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     # Summarize llm_answer
     summ_llm_answer = await summarize_text( text    = llm_answer,
+                                            state   = state,
                                             model   = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ",
-                                            max_new_tokens = 128 )
+                                            max_new_tokens = 128)
 
     # Save to DB
     await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm, summ_content = "")
@@ -139,16 +152,25 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     if len(llm_answer) > 4096:
         llm_answer = llm_answer[:4000] + "...truncated..."
     try:
-        await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
+        await message.answer(html.quote(llm_answer + "\n" + str(num_tokens)), reply_markup = get_chat_kb())
     except Exception as e:
         await message.answer("Error! Can't send message\n" + html.quote(str(e)), reply_markup = get_chat_kb())
     # Illustrate if 'game' in Model.name
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
         try:
+
+
             await illustrate(message, state, summ_llm_answer, current_user_system_prompt[4].lower())
+
+
         except Exception as e:
             await message.answer("Error! Can't illustrate\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+
+    ###########################################################
+    # Start accepting messages again
+    # Set is_thinking to False
+    data = await state.update_data(is_thinking = False)
 
 
 def get_llm_answer(prompt_to_llm, current_user_model, max_new_tokens):
@@ -174,13 +196,19 @@ def get_llm_answer(prompt_to_llm, current_user_model, max_new_tokens):
                                 current_user_model,
                                 max_new_tokens
                             )
-    return llm_answer
+    return llm_answer, num_tokens
 
 
 
 ##########################################################################################################################################################
 # Summarize text
-async def summarize_text(text: str, model: str = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", max_new_tokens: int = 1000) -> str:
+async def summarize_text(text: str, state: FSMContext, model: str = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", max_new_tokens: int = 1000) -> str:
+
+    ###########################################################
+    # Stop accepting messages while LLM is thinking
+    # Set is_thinking to True
+    data = await state.update_data(is_thinking = True)
+
     loop = asyncio.get_event_loop()
     string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
 #    debug_print("String to summarize", string_to_summarize)
@@ -191,6 +219,12 @@ async def summarize_text(text: str, model: str = "TheBloke/Mistral-7B-Instruct-v
                                                     max_new_tokens
                                                 )
 #    debug_print("Summarized text", summarized_text)
+
+    ###########################################################
+    # Start accepting messages again
+    # Set is_thinking to False
+    data = await state.update_data(is_thinking = False)
+
     return summarized_text
 
 ##########################################################################################################################################################
@@ -203,8 +237,16 @@ async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, 
     picture_description = game_type.replace("game", "") + " " + str(summ_llm_answer.split("\n")[0]).strip()
     debug_print("Picture description", picture_description)
 
+    loop = asyncio.get_event_loop()
+
     # playground accepts only 77 tokens
-    result_image_path   = await OpenDalleV1_1(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image_path   = await loop.run_in_executor(None,
+#                                                    OpenDalleV1_1,
+                                                    stable_diffusion_xl_base_1_0,
+                                                    picture_description,
+                                                    "data/generated_images",
+                                                    num_inference_steps
+                                                    )
     result_image        = FSInputFile(result_image_path)
 
     await emoji_message.delete()
@@ -216,7 +258,12 @@ async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, 
 
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
-    result_image_path   = await playground_v2_1024px_aesthetic(prompt = picture_description, file_path="data/generated_images", n_steps=num_inference_steps)
+    result_image_path   = await loop.run_in_executor(None,
+                                                     playground_v2_1024px_aesthetic,
+                                                     picture_description,
+                                                     "data/generated_images",
+                                                     num_inference_steps
+                                                     )
     result_image        = FSInputFile(result_image_path)
 
     await emoji_message.delete()

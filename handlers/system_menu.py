@@ -7,7 +7,9 @@ from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from keyboards.keyboards import *
 from classes import UIStates
-from handlers.main_menu import main_menu
+
+#from handlers.main_menu import main_menu
+
 from db.queries import *
 from classes import bot
 from utility import pin_user_settings, get_number_emoji, get_emoji_number
@@ -19,6 +21,12 @@ router = Router()
 ##########################################################################################################################################################
 # System options
 ##########################################################################################################################################################
+
+##########################################################################################################################################################
+# Main menu
+async def main_menu(message: Message, state: FSMContext) -> None:
+    await state.set_state(UIStates.chat)
+    await message.answer("<i>What's on your mind?</i>😏", reply_markup = get_chat_kb(), parse_mode = "HTML")
 
 ##########################################################################################################################################################
 # Change chat setting
@@ -47,7 +55,7 @@ async def sys_change_chat_persona(message: Message, state: FSMContext) -> None:
 
     system_prompts_available = await select_all_system_prompts(user_id = message.from_user.id)
 
-    list_models = f"<i>Please, choose AI personality</i>\n"
+    list_models = f"<i>Whom would you like me to be?😏</i>\n"
     for i in range(len(system_prompts_available)):
         list_models += f"{html.quote(get_emoji_number(i+1))} - " + html.code(f"{system_prompts_available[i][0]}") + "\n"
     persona_list = await message.answer(list_models, reply_markup = get_system_chat_mode_kb(), parse_mode=ParseMode.HTML)
