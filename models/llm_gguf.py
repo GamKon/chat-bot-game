@@ -10,7 +10,7 @@ def llm_answer_from_gguf(prompt_to_llm,
 
     llm = Llama(
         model_path   = f"/home/user/.cache/huggingface/{current_user_model[0]}",#"+current_user_model[0],  # Download the model file first
-        n_ctx        = 32768,  # The max sequence length to use - note that longer sequence lengths require much more resources
+        n_ctx        = 8192, #32768,  # The max sequence length to use - note that longer sequence lengths require much more resources
         n_threads    = 12,     # The number of CPU threads to use, tailor to your system and the resulting performance
         n_gpu_layers = -1      # The number of layers to offload to GPU, if you have GPU acceleration available
     )

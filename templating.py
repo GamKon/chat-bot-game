@@ -59,6 +59,31 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
 # "<|assistant (provide varied, creative, and vivid narration; follow all narrative instructions;
 # include all necessary possessive pronouns; maintain consistent story details; only roleplay as {{char}})|>\n"
 
+    ###########################################################
+    # Meta Llama-3 format
+    elif format_to == "Meta":
+        ''' <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+            {{ system_prompt }}<|eot_id|>!!!!!<|start_header_id|>user<|end_header_id|>
+            !!!{{ user_message_1 }}<|eot_id|>!!!<|start_header_id|>assistant<|end_header_id|>
+            {{ model_answer_1 }}<|eot_id|>!!!!!<|start_header_id|>user<|end_header_id|>
+            {{ user_message_2 }}<|eot_id|><|start_header_id|>assistant<|end_header_id|>'''
+        if user_role_name == "": user_role_name = "user"
+        if assistant_role_name == "": assistant_role_name = "assistant"
+
+        # make messages list from DB in STRING format
+        prompt_to_llm = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n" + current_system_prompt[0] + "<|eot_id|>"
+        for prompt in messages_history:
+            # TODO add custom role names
+            # !!! Anyway in DB roles must be "user" and "assistant" !!!
+            # x if C else y
+            if prompt[0].lower() == "user":
+                # If roles are empty, don't add ":" to prompt
+                prompt_to_llm += f"<|start_header_id|>{user_role_name}<|end_header_id|>\n{prompt[1]}<|eot_id|>"
+            else:
+                prompt_to_llm += f"<|start_header_id|>{assistant_role_name}<|end_header_id|>\n{prompt[1]}<|eot_id|>"
+        prompt_to_llm += f"<|start_header_id|>{user_role_name}<|end_header_id|>\n{message_to_llm}<|eot_id|><|start_header_id|>{assistant_role_name}<|end_header_id|>\n"
+
+
 
     ###########################################################
     # Pygmalion format

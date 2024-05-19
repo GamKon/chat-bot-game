@@ -9,6 +9,7 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN
       - OPENAI_API_KEY
+      - PINECONE_API_KEY
       - HELP_MESSAGE
       - DATABASE_CONNECTION
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility

@@ -137,11 +137,19 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     # llm_answer = llm_answer.strip()
 
 
-    # Summarize llm_answer
-    summ_llm_answer = await summarize_text( text    = llm_answer,
-                                            state   = state,
-                                            model   = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ",
-                                            max_new_tokens = 128)
+    # Summarize llm_answer if it's longer than 256 characters
+    if len(llm_answer) > 256:
+        summ_llm_answer = await summarize_text( text    = llm_answer,
+                                                state   = state,
+                                                model   = "mistral-7b-instruct-v0.2.Q3_K_S.gguf",
+                                                max_new_tokens = 128)
+        debug_print("Answer summarized. Characters before: ", len(llm_answer))
+        debug_print("Characters after summarization: ", len(summ_llm_answer))
+        debug_print("Original answer: ", llm_answer)
+        debug_print("Summarized answer: ", summ_llm_answer)
+    else:
+        debug_print("Answer is short, no need to summarize. Length: ", len(llm_answer))
+        summ_llm_answer = llm_answer
 
     # Save to DB
     await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm, summ_content = "")
@@ -159,11 +167,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     if 'game' in current_user_system_prompt[4].lower():
         print("!!--- Gonna Illustrate ---!!")
         try:
-
-
             await illustrate(message, state, summ_llm_answer, current_user_system_prompt[4].lower())
-
-
         except Exception as e:
             await message.answer("Error! Can't illustrate\n" + html.quote(str(e)), reply_markup = get_chat_kb())
 
@@ -202,7 +206,7 @@ def get_llm_answer(prompt_to_llm, current_user_model, max_new_tokens):
 
 ##########################################################################################################################################################
 # Summarize text
-async def summarize_text(text: str, state: FSMContext, model: str = "TheBloke/Mistral-7B-Instruct-v0.2-AWQ", max_new_tokens: int = 1000) -> str:
+async def summarize_text(text: str, state: FSMContext, model: str = "mistral-7b-instruct-v0.2.Q3_K_S.gguf", max_new_tokens: int = 1000) -> str:
 
     ###########################################################
     # Stop accepting messages while LLM is thinking
@@ -212,8 +216,9 @@ async def summarize_text(text: str, state: FSMContext, model: str = "TheBloke/Mi
     loop = asyncio.get_event_loop()
     string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
 #    debug_print("String to summarize", string_to_summarize)
-    summarized_text = await loop.run_in_executor(None,
-                                                 llm_answer_from_model,
+    summarized_text, num_tokens = await loop.run_in_executor(None,
+#                                                 llm_answer_from_model,
+                                                    get_llm_answer,
                                                     string_to_summarize,
                                                     [model],
                                                     max_new_tokens
@@ -230,7 +235,7 @@ async def summarize_text(text: str, state: FSMContext, model: str = "TheBloke/Mi
 ##########################################################################################################################################################
 # Illustrate the answer
 async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, game_type: str) -> None:
-    num_inference_steps = 70
+    num_inference_steps = 30
 
     emoji_message       = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
 

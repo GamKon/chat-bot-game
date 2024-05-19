@@ -1,5 +1,5 @@
-#https://huggingface.co/playgroundai/playground-v2-1024px-aesthetic
-# playgroundai/playground-v2-1024px-aesthetic
+#https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic
+# playgroundai/playground-v2.5-1024px-aesthetic
 
 from diffusers import DiffusionPipeline
 import torch
@@ -8,7 +8,8 @@ import torch
 def playground_v2_1024px_aesthetic(prompt: str, file_path, n_steps: int):
 
     pipe = DiffusionPipeline.from_pretrained(
-        "playgroundai/playground-v2-1024px-aesthetic",
+        # "playgroundai/playground-v2-1024px-aesthetic",
+        "playgroundai/playground-v2.5-1024px-aesthetic",
         torch_dtype=torch.float16,
         use_safetensors=True,
         add_watermarker=False,
