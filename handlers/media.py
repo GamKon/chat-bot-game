@@ -11,7 +11,7 @@ from handlers.ai                    import send_to_llm, summarize_text
 
 from models.openai_whisper_large_v3 import openai_whisper_large_v3
 from models.playgroundai            import playground_v2_1024px_aesthetic
-from models.OpenDalleV1_1           import OpenDalleV1_1
+from models.OpenDalleV1_1           import OpenDalleV1_1, ProteusV0_2
 from models.stable_diffusion        import stable_diffusion_xl_base_1_0, stable_diffusion_xl_base_refiner_1_0
 
 router = Router()
@@ -63,7 +63,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
         num_inference_steps = 60
         loop = asyncio.get_event_loop()
         result_image_path = await loop.run_in_executor(None,
-                                                        playground_v2_1024px_aesthetic,
+                                                        OpenDalleV1_1,
                                                         message.text,
                                                         "data/generated_images",
                                                         num_inference_steps
@@ -116,7 +116,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
     await main_menu(message, state)
 
 ##########################################################################################################################################################
-# Generate Image with stabilityai/stable-diffusion-xl-base-1.0
+# Generate Image with dataautogpt3/ProteusV0.2
 @router.message(Command("image3"))
 async def generate_image(message: Message, state: FSMContext) -> None:
     await state.set_state( UIStates.generate_image3 )
@@ -136,6 +136,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
         loop = asyncio.get_event_loop()
         result_image_path = await loop.run_in_executor(None,
                                                        stable_diffusion_xl_base_1_0,
+#                                                       ProteusV0_2,
                                                        message.text,
                                                        "data/generated_images",
                                                        num_inference_steps

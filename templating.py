@@ -5,6 +5,7 @@ from utility import debug_print
 # Prepare prompt for LLM
 async def chat_template(message_to_llm: str, message: Message, format_to: str = "Mistral", use_names: bool = True):
 
+    prompt_to_llm = ""
     current_system_prompt = await select_system_prompt(message.from_user.id)
     debug_print("current_system_prompt", current_system_prompt) # current_system_prompt[0]
 
@@ -18,29 +19,10 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
         assistant_role_name = ""
 
     messages_history = await select_user_chat_history(user_id = message.from_user.id)
-    ###########################################################
-    # Mistral format
-    if format_to == "Mistral":
-        # make messages list from DB in STRING format
-        prompt_to_llm = "<s>[INST] <<SYS>>\n" + current_system_prompt[0] + "\n<</SYS>>\n"
-        for prompt in messages_history:
-            # Check for message's Author form Messages table (user, ai)
-            if prompt[0].lower() == "user":
-                prompt_to_llm += user_role_name + prompt[1] + " [/INST] "
-            elif prompt[0].lower() == "ai":
-# No need any more. TEST it!
-#                # Remove assistant role name from prompt if AI added it
-#                if assistant_role_name != "":
-#                    assistant_prompt = prompt[1].replace(assistant_role_name, "", 1)
-#                else:
-#                    assistant_prompt = prompt[1]
 
-                # Add ai message to prompt
-                prompt_to_llm += assistant_role_name + prompt[1] + "</s>[INST] "
-        prompt_to_llm += user_role_name + message_to_llm + " [/INST] " + assistant_role_name
     ###########################################################
     # ChatML format
-    elif format_to == "ChatML":
+    if format_to == "ChatML":
         if user_role_name == "": user_role_name = "user"
         if assistant_role_name == "": assistant_role_name = "assistant"
 
@@ -56,8 +38,8 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             else:
                 prompt_to_llm += f"<|im_start|>{assistant_role_name}\n{prompt[1]}<|im_end|>\n"
         prompt_to_llm += f"<|im_start|>{user_role_name}\n{message_to_llm}<|im_end|>\n<|im_start|>{assistant_role_name}\n"
-# "<|assistant (provide varied, creative, and vivid narration; follow all narrative instructions;
-# include all necessary possessive pronouns; maintain consistent story details; only roleplay as {{char}})|>\n"
+    # "<|assistant (provide varied, creative, and vivid narration; follow all narrative instructions;
+    # include all necessary possessive pronouns; maintain consistent story details; only roleplay as {{char}})|>\n"
 
     ###########################################################
     # Meta Llama-3 format
@@ -82,8 +64,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             else:
                 prompt_to_llm += f"<|start_header_id|>{assistant_role_name}<|end_header_id|>\n{prompt[1]}<|eot_id|>"
         prompt_to_llm += f"<|start_header_id|>{user_role_name}<|end_header_id|>\n{message_to_llm}<|eot_id|><|start_header_id|>{assistant_role_name}<|end_header_id|>\n"
-
-
 
     ###########################################################
     # Pygmalion format
@@ -156,8 +136,20 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
         for prompt in messages_history:
             prompt_to_llm.append({"role": "assistant", "content": prompt[1]})
         prompt_to_llm.append({"role": "user", "content": message_to_llm})
-    # print("----------------------------------------------prompt_to_llm after TEMPLATING-----------------------------------------------------")
-    # print(prompt_to_llm)
-    # print("---------------------------------------------------------------------------------------------------------------")
+
+    ###########################################################
+    # Mistral format (default)
+    else:
+        # format_to == "Mistral":
+        # make messages list from DB in STRING format
+        prompt_to_llm = "<s>[INST] <<SYS>>\n" + current_system_prompt[0] + "\n<</SYS>>\n"
+        for prompt in messages_history:
+            # Check for message's Author form Messages table (user, ai)
+            if prompt[0].lower() == "user":
+                prompt_to_llm += user_role_name + prompt[1] + " [/INST] "
+            elif prompt[0].lower() == "ai":
+                # Add ai message to prompt
+                prompt_to_llm += assistant_role_name + prompt[1] + "</s>[INST] "
+        prompt_to_llm += user_role_name + message_to_llm + " [/INST] " + assistant_role_name
 
     return prompt_to_llm
