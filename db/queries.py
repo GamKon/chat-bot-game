@@ -75,7 +75,7 @@ async def select_user_chat_history(user_id):
         current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
         user_chat_id = int(current_chat_id.first()[0])
         result = await conn.execute(select(Message.author, Message.content, Message.summ_content).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.asc()))
-        return result.all()
+    return result.all()
 ##########################################################################################################################################################
 # Add user message
 async def add_message(user_id, author, content, summ_content):
@@ -89,6 +89,13 @@ async def add_message(user_id, author, content, summ_content):
                 summ_content = summ_content,
                 chat_id      = user_chat_id
             ))
+        message_id = await conn.execute(select(Message.id).where(
+                Message.user_id == user_id,
+                Message.chat_id == user_chat_id,
+                Message.content == content
+            ))
+        message_id_str = str(message_id.first()[0])
+    return message_id_str
 ##########################################################################################################################################################
 # Select last User question
 async def select_last_question(user_id):

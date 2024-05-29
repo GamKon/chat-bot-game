@@ -36,19 +36,10 @@ router = Router()
 @router.message(UIStates.chat)
 async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str = "") -> None:
 
-    # TODO Use Sync to Async wrapper to avoid blocking
-    # dp.message.middleware(ai.ai_middleware)
-    # asgiref.sync.sync_to_async
-
     # Stop accepting messages while LLM is thinking
     data = await state.get_data()
     if "is_thinking" not in data:
         data = await state.update_data(is_thinking = False)
-    # else:
-    #     debug_print("______is_thinking in data______\n")
-    #if data["is_thinking"]:
-    #    await message.reply("I'm still thinking at the first question, please be patient")
-    #     return
 
     current_user_model = await select_user_llm_model(message.from_user.id)
     debug_print("current_user_model4", current_user_model[4])
@@ -156,15 +147,22 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
         debug_print("Answer is short, no need to summarize. Length: ", len(llm_answer))
         summ_llm_answer = llm_answer
 
-    ###########################################################
-    # Save to Pinecone Vector DB
-    store_chat_history([message_to_llm, llm_answer])
-    debug_print("RAG retrieved", get_relevant_chat_history(message_to_llm))
 
     ###########################################################
-    # Save to PostgreSQL DB
-    await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm, summ_content = "")
-    await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer, summ_content = summ_llm_answer)
+    # Save to PostgreSQL DB and get messages IDs
+    vector_id_user  = await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm, summ_content = "")
+    vector_id_ai    = await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer, summ_content = summ_llm_answer)
+
+
+    ###########################################################
+    # Save to Pinecone Vector DB
+    current_chat = await select_user_chat_id(user_id = message.from_user.id)
+    debug_print("RAG current_chat", current_chat[0])
+    namespace = str(message.from_user.id)+"_"+str(current_chat[0])
+    store_vector_chat_message([message_to_llm, llm_answer], [vector_id_user, vector_id_ai] ,namespace)
+    debug_print("RAG retrieved", get_relevant_chat_history(message_to_llm, namespace))
+
+
     await emoji_message.delete()
 #    await message.edit_text("💡")
     #await message.answer(html.quote(llm_answer), reply_markup = get_chat_kb())
