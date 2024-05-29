@@ -10,7 +10,7 @@ from keyboards.keyboards            import *
 from handlers.ai                    import send_to_llm, summarize_text
 
 from models.openai_whisper_large_v3 import openai_whisper_large_v3
-from models.playgroundai            import playground_v2_1024px_aesthetic
+from models.playgroundai            import playground_v2_5_1024px_aesthetic
 from models.OpenDalleV1_1           import OpenDalleV1_1, ProteusV0_2
 from models.stable_diffusion        import stable_diffusion_xl_base_1_0, stable_diffusion_xl_base_refiner_1_0
 
@@ -99,7 +99,7 @@ async def generate_image(message: Message, state: FSMContext) -> None:
         num_inference_steps = 60
         loop = asyncio.get_event_loop()
         result_image_path = await loop.run_in_executor(None,
-                                                       playground_v2_1024px_aesthetic,
+                                                       playground_v2_5_1024px_aesthetic,
                                                        message.text,
                                                        "data/generated_images",
                                                        num_inference_steps

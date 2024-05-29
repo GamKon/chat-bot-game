@@ -39,4 +39,8 @@ def llm_answer_from_gguf(prompt_to_llm,
     # if len(str("".join(llm_reply_stdout.splitlines())).strip()) == 0:
     #     raise Exception("LLM reply is empty")
 
+    # Work around censoreship of Smaug LLM 8B
+    # cut string after "assistant"
+    llm_reply = llm_reply.split("assistant")[0]
+
     return llm_reply, num_tokens

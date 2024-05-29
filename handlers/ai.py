@@ -12,7 +12,7 @@ from utility        import debug_print, pin_user_settings
 from models.llm_awq_gptq     import llm_answer_from_model
 from models.llm_gguf         import llm_answer_from_gguf
 from models.openai_chatgpt   import gpt_3_5_turbo_1106
-from models.playgroundai     import playground_v2_1024px_aesthetic
+from models.playgroundai     import playground_v2_5_1024px_aesthetic
 from models.OpenDalleV1_1    import OpenDalleV1_1, ProteusV0_2
 from models.stable_diffusion import stable_diffusion_xl_base_1_0
 
@@ -227,7 +227,7 @@ async def summarize_text(text: str, state: FSMContext, model: str = "mistral-7b-
 
     loop = asyncio.get_event_loop()
     if draw:
-        string_to_summarize  = "Give short instruction, no more than 60 words, to picture generation AI how to illustrate what is happening here: '" + text + "'. Hey, generative AI, draw this: "
+        string_to_summarize  = "Engineer prompt to illustrate what is happening here: '" + text + "' Draw this prompt: "
                                 # Focus on who, where then what is happening.
     else:
         string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
@@ -252,18 +252,23 @@ async def summarize_text(text: str, state: FSMContext, model: str = "mistral-7b-
 ##########################################################################################################################################################
 # Illustrate the answer
 async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, game_type: str) -> None:
+
     num_inference_steps = 50
     picture_description = game_type.replace("game", "") + " " + str(summ_llm_answer.split("\n")[0]).strip()
+
+    # Show picture description
     debug_print("Picture description", picture_description)
+    await message.answer(picture_description, reply_markup = get_chat_kb())
+
     loop = asyncio.get_event_loop()
 
     # Create a dictionary to map function names to functions
     function_map = {
         "ProteusV0_2": ProteusV0_2,
         "OpenDalleV1_1": OpenDalleV1_1,
-        "playground_v2_1024px_aesthetic": playground_v2_1024px_aesthetic
+        "playground_v2_5_1024px_aesthetic": playground_v2_5_1024px_aesthetic
     }
-    txt_to_img_models = ["ProteusV0_2", "OpenDalleV1_1", "playground_v2_1024px_aesthetic"]
+    txt_to_img_models = ["ProteusV0_2", "OpenDalleV1_1", "playground_v2_5_1024px_aesthetic"]
 
     for model_name in txt_to_img_models:
         try:
@@ -289,9 +294,6 @@ async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, 
         except Exception as e:
             await message.answer(f"Error! Can't send image made by {model_name}\n'{picture_description}'\n{html.quote(str(e))}", reply_markup = get_chat_kb())
             continue
-
-    # Show picture description
-    await message.answer(picture_description, reply_markup = get_chat_kb())
 
     await main_menu(message, state)
 

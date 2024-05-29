@@ -12,8 +12,8 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
     # If not use_names of roles are empty, don't add ":" to prompt
     if use_names:
         roles = [current_system_prompt[1], current_system_prompt[2]]
-        user_role_name      = "" if roles[0] == "" else f"{roles[0]}: "
-        assistant_role_name = "" if roles[1] == "" else f"{roles[1]}: "
+        user_role_name      = "" if roles[0] == "" else f"{roles[0]}"
+        assistant_role_name = "" if roles[1] == "" else f"{roles[1]}"
     else:
         user_role_name      = ""
         assistant_role_name = ""
@@ -33,7 +33,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
             # x if C else y
             if prompt[0].lower() == "user":
-                # If roles are empty, don't add ":" to prompt
                 prompt_to_llm += f"<|im_start|>{user_role_name}\n{prompt[1]}<|im_end|>\n"
             else:
                 prompt_to_llm += f"<|im_start|>{assistant_role_name}\n{prompt[1]}<|im_end|>\n"
@@ -59,7 +58,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
             # x if C else y
             if prompt[0].lower() == "user":
-                # If roles are empty, don't add ":" to prompt
                 prompt_to_llm += f"<|start_header_id|>{user_role_name}<|end_header_id|>\n{prompt[1]}<|eot_id|>"
             else:
                 prompt_to_llm += f"<|start_header_id|>{assistant_role_name}<|end_header_id|>\n{prompt[1]}<|eot_id|>"
@@ -79,7 +77,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
             # x if C else y
             if prompt[0].lower() == "user":
-                # If roles are empty, don't add ":" to prompt
                 prompt_to_llm += f"<|user|>{user_role_name}{prompt[1]}"
             else:
                 prompt_to_llm += f"<|assistant|>{assistant_role_name}{prompt[1]}"
@@ -98,7 +95,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
             # x if C else y
             if prompt[0].lower() == "user":
-                # If roles are empty, don't add ":" to prompt
                 prompt_to_llm += f"### {user_role_name}\n{prompt[1]}\n"
             else:
                 prompt_to_llm += f"### {assistant_role_name}{prompt[1]}\n"
@@ -119,7 +115,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
             # x if C else y
             if prompt[0].lower() == "user":
-                # If roles are empty, don't add ":" to prompt
                 prompt_to_llm += f"{user_role_name}{prompt[1]}\n"
             else:
                 prompt_to_llm += f"{assistant_role_name}{prompt[1]}\n"
