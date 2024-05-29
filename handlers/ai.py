@@ -20,6 +20,7 @@ from handlers.main_menu      import main_menu, command_start
 from classes                 import UIStates
 from db.queries              import *
 from templating              import chat_template
+from templating_rag          import chat_template_rag
 from keyboards.keyboards     import get_chat_kb
 from rag                     import *
 
@@ -75,9 +76,21 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     ###########################################################
     # Prepare prompt for LLM
+
     # make messages list from DB in STRING format
     # Template whole string to send depending on format
-    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
+###    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
+
+    # RAG: make messages list from Pinecone DB in STRING format
+    # Template whole string to send depending on format
+    # message_to_llm: str, namespace: str, message: Message, format_to: str = "Meta", top_k: int = 6, use_names
+
+    # TODO dynamically change top_k depending on the length of the message
+    top_k = 5 # how many messages to retrieve from Pinecone
+    current_chat = await select_user_chat_id(user_id = message.from_user.id)
+    namespace = str(message.from_user.id)+"_"+str(current_chat[0])
+
+    prompt_to_llm = await chat_template_rag(message_to_llm, namespace, message, format_to = current_user_model[2], top_k = top_k, use_names = current_user_model[3])
 
     ###########################################################
     # Stop accepting messages while LLM is thinking
@@ -114,7 +127,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 # Set is_thinking to False
                 data = await state.update_data(is_thinking = False)
                 return
-            asyncio.sleep(3)
+            await asyncio.sleep(3)
         except (TypeError, NameError, Exception) as e:
             await emoji_message.delete()
             await message.answer("Nothing came to my mind, sorry (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
@@ -131,22 +144,22 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     #     debug_print("Splitting AI name from answer", current_user_system_prompt[2])
     # llm_answer = llm_answer.strip()
 
-
-    # Summarize llm_answer if it's longer than 256 characters
-    if len(llm_answer) > 256:
-        summ_llm_answer = await summarize_text( text    = llm_answer,
-                                                state   = state,
-                                                model   = "mistral-7b-instruct-v0.2.Q3_K_S.gguf",
-                                                max_new_tokens = 170)
-        debug_print("Answer summarized. Characters before: ", len(llm_answer))
-        debug_print("Characters after summarization: ", len(summ_llm_answer))
-        debug_print("Original answer: ", llm_answer)
-        debug_print("Summarized answer: ", summ_llm_answer)
-        await message.answer(html.quote("Summarized: " + summ_llm_answer + "\n" + str(len(llm_answer))+ " -> " + str(len(summ_llm_answer))))
-    else:
-        debug_print("Answer is short, no need to summarize. Length: ", len(llm_answer))
-        summ_llm_answer = llm_answer
-
+# No need to summarize as working at RAG
+    # # Summarize llm_answer if it's longer than 256 characters
+    # if len(llm_answer) > 256:
+    #     summ_llm_answer = await summarize_text( text    = llm_answer,
+    #                                             state   = state,
+    #                                             model   = "mistral-7b-instruct-v0.2.Q3_K_S.gguf",
+    #                                             max_new_tokens = 170)
+    #     debug_print("Answer summarized. Characters before: ", len(llm_answer))
+    #     debug_print("Characters after summarization: ", len(summ_llm_answer))
+    #     debug_print("Original answer: ", llm_answer)
+    #     debug_print("Summarized answer: ", summ_llm_answer)
+    #     await message.answer(html.quote("Summarized: " + summ_llm_answer + "\n" + str(len(llm_answer))+ " -> " + str(len(summ_llm_answer))))
+    # else:
+    #     debug_print("Answer is short, no need to summarize. Length: ", len(llm_answer))
+    #     summ_llm_answer = llm_answer
+    summ_llm_answer = llm_answer
 
     ###########################################################
     # Save to PostgreSQL DB and get messages IDs
@@ -156,12 +169,14 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
 
     ###########################################################
     # Save to Pinecone Vector DB
-    current_chat = await select_user_chat_id(user_id = message.from_user.id)
-    debug_print("RAG current_chat", current_chat[0])
-    namespace = str(message.from_user.id)+"_"+str(current_chat[0])
-    store_vector_chat_message([message_to_llm, llm_answer], [vector_id_user, vector_id_ai] ,namespace)
-    debug_print("RAG retrieved", get_relevant_chat_history(message_to_llm, namespace))
 
+    # # To store user and ai messages separately
+    # store_vector_chat_message([message_to_llm, llm_answer], [vector_id_user, vector_id_ai] ,namespace)
+
+    # To store only user+ai messages in one record
+    store_vector_chat_message([message_to_llm + " \n" + llm_answer], [vector_id_ai] ,namespace)
+
+#    debug_print("RAG retrieved", get_relevant_chat_history(message_to_llm, namespace,top_k=top_k))
 
     await emoji_message.delete()
 #    await message.edit_text("💡")
@@ -176,14 +191,14 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     ###########################################################
     # Illustrate if 'game' in model.name
     if 'game' in current_user_system_prompt[4].lower():
-        debug_print("Gonna Illustrate", summ_llm_answer)
+        #debug_print("Gonna Illustrate", summ_llm_answer)
         try:
-            summ_llm_answer = await summarize_text( text    = llm_answer,
+            picture_description = await summarize_text( text    = llm_answer,
                                                 state   = state,
-                                                model   = "mistral-7b-instruct-v0.2.Q3_K_S.gguf",
+                                                model   = "llama-3-instruct-8b-simpo-q4_k_m.gguf",
                                                 max_new_tokens = 77,
                                                 draw    = True)
-            await illustrate(message, state, summ_llm_answer, current_user_system_prompt[4].lower())
+            await illustrate(message, state, picture_description, current_user_system_prompt[4].lower())
         except Exception as e:
             await message.answer("Error! Can't illustrate\n" + html.quote(str(e)), reply_markup = get_chat_kb())
 
@@ -232,7 +247,7 @@ async def summarize_text(text: str, state: FSMContext, model: str = "mistral-7b-
 
     loop = asyncio.get_event_loop()
     if draw:
-        string_to_summarize  = "Engineer prompt to illustrate what is happening here: '" + text + "' Draw this prompt: "
+        string_to_summarize  = "Engineer very short prompt to illustrate what is happening here: '" + text + "' One sentence prompt to draw: "
                                 # Focus on who, where then what is happening.
     else:
         string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
@@ -256,25 +271,26 @@ async def summarize_text(text: str, state: FSMContext, model: str = "mistral-7b-
 
 ##########################################################################################################################################################
 # Illustrate the answer
-async def illustrate(message: Message, state: FSMContext, summ_llm_answer: str, game_type: str) -> None:
+async def illustrate(message: Message, state: FSMContext, picture_description: str, game_type: str) -> None:
 
     num_inference_steps = 50
-    picture_description = game_type.replace("game", "") + " " + str(summ_llm_answer.split("\n")[0]).strip()
+    picture_description = game_type.replace("game", "") + " " + str(picture_description.split("\n")[0]).strip()
 
     # Show picture description
-    debug_print("Picture description", picture_description)
+    #debug_print("Picture description", picture_description)
     await message.answer(picture_description, reply_markup = get_chat_kb())
 
     loop = asyncio.get_event_loop()
 
     # Create a dictionary to map function names to functions
-    function_map = {
-        "ProteusV0_2": ProteusV0_2,
-        "OpenDalleV1_1": OpenDalleV1_1,
-        "playground_v2_5_1024px_aesthetic": playground_v2_5_1024px_aesthetic
-    }
-    txt_to_img_models = ["ProteusV0_2", "OpenDalleV1_1", "playground_v2_5_1024px_aesthetic"]
+    function_map = {"playground_v2_5_1024px_aesthetic": playground_v2_5_1024px_aesthetic}
 
+    #     "ProteusV0_2": ProteusV0_2,
+    #     "OpenDalleV1_1": OpenDalleV1_1,
+    #     "playground_v2_5_1024px_aesthetic": playground_v2_5_1024px_aesthetic
+    # }
+    #txt_to_img_models = ["ProteusV0_2", "OpenDalleV1_1", "playground_v2_5_1024px_aesthetic"]
+    txt_to_img_models = ["playground_v2_5_1024px_aesthetic"]
     for model_name in txt_to_img_models:
         try:
             emoji_message = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))

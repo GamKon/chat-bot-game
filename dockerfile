@@ -78,7 +78,9 @@ COPY ./main.py ./
 COPY ./classes.py ./
 COPY ./templating.py ./
 COPY ./utility.py ./
+COPY ./templating_rag.py ./
 COPY ./rag.py ./
+
 
 # Copy precompiled llama_cpp_python with CUDA GPU support
 #COPY ./llama_cpp/ /usr/local/lib/python3.11/site-packages/llama_cpp/

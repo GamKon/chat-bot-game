@@ -1,14 +1,15 @@
 from aiogram.types import Message
 from db.queries import *
 from utility import debug_print
+from rag import get_relevant_chat_history
 
 ###########################################################
 # Prepare prompt for LLM
-async def chat_template(message_to_llm: str, message: Message, format_to: str = "Mistral", use_names: bool = True):
+async def chat_template_rag(message_to_llm: str, namespace: str, message: Message, format_to: str = "Meta", top_k: int = 6, use_names: bool = True):
 
     prompt_to_llm = ""
     current_system_prompt = await select_system_prompt(message.from_user.id)
-    debug_print("current_system_prompt", current_system_prompt) # current_system_prompt[0]
+    #debug_print("current_system_prompt", current_system_prompt) # current_system_prompt[0]
 
     # If not use_names of roles are empty, don't add ":" to prompt
     if use_names:
@@ -19,8 +20,38 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
         user_role_name      = ""
         assistant_role_name = ""
 
-    messages_history = await select_user_chat_history(user_id = message.from_user.id)
+    messages_history = get_relevant_chat_history(message_to_llm, namespace, top_k)
 
+    rag_system_prompt = current_system_prompt[0] + " \nHere what happened earlier: \n"
+    for message in messages_history:
+        rag_system_prompt += message + "\n"
+    rag_system_prompt += "Last new user input: \n"
+#    debug_print("rag_system_prompt", rag_system_prompt)
+
+    ###########################################################
+    # Meta Llama-3 format
+    if format_to == "Meta":
+
+        if user_role_name == "": user_role_name = "user"
+        if assistant_role_name == "": assistant_role_name = "assistant"
+
+        # make messages list STRING format<|begin_of_text|>
+        prompt_to_llm = "<|start_header_id|>system<|end_header_id|>\n" + rag_system_prompt + "<|eot_id|>"
+
+        prompt_to_llm += f"<|start_header_id|>{user_role_name}<|end_header_id|>\n{message_to_llm}<|eot_id|><|start_header_id|>{assistant_role_name}<|end_header_id|>\n"
+
+    return prompt_to_llm
+
+'''
+Meta format:
+    <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+    {{ system_prompt }}<|eot_id|><|start_header_id|>user<|end_header_id|>
+    {{ user_message_1 }}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+    {{ model_answer_1 }}<|eot_id|><|start_header_id|>user<|end_header_id|>
+    {{ user_message_2 }}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+'''
+
+'''
     ###########################################################
     # ChatML format
     if format_to == "ChatML":
@@ -44,21 +75,12 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
     ###########################################################
     # Meta Llama-3 format
     elif format_to == "Meta":
-        ''' <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-            {{ system_prompt }}<|eot_id|><|start_header_id|>user<|end_header_id|>
-            {{ user_message_1 }}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-            {{ model_answer_1 }}<|eot_id|><|start_header_id|>user<|end_header_id|>
-            {{ user_message_2 }}<|eot_id|><|start_header_id|>assistant<|end_header_id|>'''
+
         if user_role_name == "": user_role_name = "user"
         if assistant_role_name == "": assistant_role_name = "assistant"
 
         # make messages list from DB in STRING format
-
-        # TODO check if <|begin_of_text|> at the beginning gives a following error:
-        # llama_tokenize_internal: Added a BOS token to the prompt as specified by the model but the prompt also starts with a BOS token. So now the final prompt starts with 2 BOS tokens. Are you sure this is what you want?
-        # prompt_to_llm = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n" + current_system_prompt[0] + "<|eot_id|>"
-
-        prompt_to_llm = "<|start_header_id|>system<|end_header_id|>\n" + current_system_prompt[0] + "<|eot_id|>"
+        prompt_to_llm = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n" + current_system_prompt[0] + "<|eot_id|>"
         for prompt in messages_history:
             # TODO add custom role names
             # !!! Anyway in DB roles must be "user" and "assistant" !!!
@@ -153,4 +175,6 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
                 prompt_to_llm += assistant_role_name + prompt[1] + "</s>[INST] "
         prompt_to_llm += user_role_name + message_to_llm + " [/INST] " + assistant_role_name
 
+
     return prompt_to_llm
+'''

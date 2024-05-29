@@ -2,16 +2,12 @@ import os
 from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
 from utility import debug_print
-import json
 
 # Get the Pinecone API key from the environment
 pc_api_key = os.getenv("PINECONE_API_KEY")
 
 pc = Pinecone(
     api_key=pc_api_key)
-
-# Now do stuff
-debug_print("Indexes: ", pc.list_indexes().names())
 
 if 'chat-bot-history' not in pc.list_indexes().names():
 
@@ -48,6 +44,7 @@ def store_vector_chat_message(chat_history, vector_id, namespace):
                 {
                     "id": vector_id[i],
                     "values": embeddings[i],
+#   What are these sparse values for?
                     # "sparse_values": {
                     #     "indices": [1, 5],
                     #     "values": [0.5, 0.5]
@@ -63,7 +60,7 @@ def store_vector_chat_message(chat_history, vector_id, namespace):
 
 
 # Retrieve closest messages in chat history from Pinecone
-def get_relevant_chat_history(message, namespace, top_k=2):
+def get_relevant_chat_history(message, namespace, top_k=6):
     query_embedding = get_embedding(message)
     results = index.query(
                 namespace=namespace,
@@ -72,10 +69,23 @@ def get_relevant_chat_history(message, namespace, top_k=2):
                 include_metadata=True
                 # include_values=True
     )
-    debug_print("results", results)
 
-    closest_messages = [match["metadata"]["message"] for match in results.matches]
+#    debug_print(f"RAG retrieved {top_k} closest messages", results)
 
-#    debug_print("closest_messages", closest_messages)
+    #closest_messages = [match["metadata"]["message"] for match in results.matches]
 
-    return closest_messages
+    # Retrieve messages and vector_ids from results
+    closest_messages = [(match["metadata"]["message"], int(match["id"])) for match in results.matches]
+    # Sort messages by vector_id
+    closest_messages.sort(key=lambda x: x[1])
+    # Extract sorted messages
+    sorted_messages = [message for message, _ in closest_messages]
+
+    for message in sorted_messages:
+        debug_print("RAG closest message", message)
+
+    return sorted_messages
+
+# Delete all messages in namespace
+def delete_all_namespace_messages(namespace):
+    index.delete(delete_all=True, namespace=namespace)

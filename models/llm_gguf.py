@@ -24,13 +24,13 @@ def llm_answer_from_gguf(prompt_to_llm,
         echo        = False        # Whether to echo the prompt
     )
 
-    debug_print(f"RAW LLM reply from {current_user_model[0]}", output)
+    #debug_print(f"RAW LLM reply from {current_user_model[0]}", output)
 
     #usage': {'prompt_tokens': 127, 'completion_tokens': 21, 'total_tokens': 148}
     llm_reply = output['choices'][0]['text'].strip()
 
     num_tokens = [output['usage']['prompt_tokens'], output['usage']['completion_tokens'], output['usage']['total_tokens']]
-    debug_print("tokens", num_tokens)
+    #debug_print("tokens", num_tokens)
 
     debug_print("llm_reply", llm_reply)
 
