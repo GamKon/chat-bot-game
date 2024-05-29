@@ -21,6 +21,7 @@ from classes                 import UIStates
 from db.queries              import *
 from templating              import chat_template
 from keyboards.keyboards     import get_chat_kb
+from rag                     import *
 
 router = Router()
 
@@ -155,7 +156,13 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
         debug_print("Answer is short, no need to summarize. Length: ", len(llm_answer))
         summ_llm_answer = llm_answer
 
-    # Save to DB
+    ###########################################################
+    # Save to Pinecone Vector DB
+    store_chat_history([message_to_llm, llm_answer])
+    debug_print("RAG retrieved", get_relevant_chat_history(message_to_llm))
+
+    ###########################################################
+    # Save to PostgreSQL DB
     await add_message(user_id = message.from_user.id, author = "user", content = message_to_llm, summ_content = "")
     await add_message(user_id = message.from_user.id, author = "ai", content = llm_answer, summ_content = summ_llm_answer)
     await emoji_message.delete()
