@@ -32,7 +32,8 @@ def stable_diffusion_xl_base_1_0(prompt, file_path, n_steps: int):
 # stable-diffusion-xl-base-1.0
     # Stable diffusion pipeline
     pipe = DiffusionPipeline.from_pretrained(
-        "stabilityai/stable-diffusion-xl-base-1.0",
+        "UnfilteredAI/NSFW-GEN-ANIME",
+        # "stabilityai/stable-diffusion-xl-base-1.0",
         torch_dtype=torch.float16,
         use_safetensors=True,
         variant="fp16")

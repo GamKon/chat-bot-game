@@ -5,8 +5,8 @@ FROM python:3.11.5 AS chat-bot-ai
 
 
 ## GGUF To compile llama_cpp_python for cuda
-##RUN wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
-##RUN dpkg -i cuda-keyring_1.1-1_all.deb
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+RUN dpkg -i cuda-keyring_1.1-1_all.deb
 
 #sudo apt-get update
 #sudo apt-get -y install cuda-toolkit-12-3
@@ -17,9 +17,8 @@ RUN apt-get update && apt-get install --assume-yes \
     nano \
     git \
     ffmpeg \
-    mc
-    #    \
-##    cuda-toolkit-12-3
+    mc \
+    cuda-toolkit-12-3
 #    nvtop
 
 # To fix a bug in the nvidia driver installation
@@ -41,7 +40,7 @@ RUN pip install --upgrade "git+https://github.com/huggingface/transformers" opti
 ##RUN pip install flash-attn --no-build-isolation
 
 # llama.cpp
-##RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=all" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
+RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=all" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
 #  nvcc --list-gpu-arch
 # -DCMAKE_CUDA_ARCHITECTURES=!!native/all/86
 
@@ -79,9 +78,12 @@ COPY ./main.py ./
 COPY ./classes.py ./
 COPY ./templating.py ./
 COPY ./utility.py ./
+COPY ./templating_rag.py ./
+COPY ./rag.py ./
+
 
 # Copy precompiled llama_cpp_python with CUDA GPU support
-COPY ./llama_cpp/ /usr/local/lib/python3.11/site-packages/llama_cpp/
+#COPY ./llama_cpp/ /usr/local/lib/python3.11/site-packages/llama_cpp/
 
 # RUN chown -R user:user /app
 # RUN chown -R user:user /home/user

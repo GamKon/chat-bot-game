@@ -12,6 +12,10 @@ openai
 nvitop
 llama-cpp-python
 
+# for Pinecone Vector Database
+pinecone-client
+sentence-transformers
+
 # for flash attantion
 # packaging
 # ninja
@@ -21,5 +25,5 @@ llama-cpp-python
 # einops # for chat_phi_1_5
 # sacremoses # to use XLMTokenizer
 # emoji
-# bitsandbytes
+bitsandbytes
 # scipy

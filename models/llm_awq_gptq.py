@@ -5,8 +5,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer, Text
 from auto_gptq import exllama_set_max_input_length
 
 def llm_answer_from_model(prompt_to_llm,
-                                current_user_model,
-                                max_new_tokens):
+                          current_user_model,
+                          max_new_tokens):
     debug_print(f"prompt TO {current_user_model[0]}", prompt_to_llm)
 
     tokenizer = AutoTokenizer.from_pretrained(current_user_model[0], trust_remote_code=True)
@@ -69,7 +69,8 @@ def llm_answer_from_model(prompt_to_llm,
     generation_output = model.generate(
         tokens,
         streamer=streamer,
-        **generation_params
+        **generation_params,
+        pad_token_id=tokenizer.eos_token_id
     )
 
     # Return stdout to normal

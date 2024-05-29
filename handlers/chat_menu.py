@@ -10,6 +10,7 @@ from classes import UIStates
 from handlers.main_menu import main_menu
 from handlers.ai import send_to_llm
 from db.queries import *
+from rag import delete_all_namespace_messages
 
 router = Router()
 
@@ -102,7 +103,8 @@ async def chat_reset_confirm(message: Message, state: FSMContext) -> None:
 @router.message(UIStates.menu_confirm)#, F.text.casefold() == "✅ Ok")
 async def chat_reset(message: Message, state: FSMContext) -> None:
     if message.text.casefold() == "✅ ok":
-        await delete_all_messages(user_id = message.from_user.id)
+        namespace = await delete_all_messages(user_id = message.from_user.id)
+        delete_all_namespace_messages(namespace)
         await message.answer("<i>Cleared You may start over.</i>", reply_markup=get_chat_kb(), parse_mode="HTML")
         await state.set_state( UIStates.chat )
     else:

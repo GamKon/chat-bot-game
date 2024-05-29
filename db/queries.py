@@ -7,6 +7,8 @@
 from sqlalchemy import select
 from sqlalchemy.sql.expression import Delete, Update
 from sqlalchemy.dialects.postgresql import insert
+#from utility import debug_print
+#from rag import delete_all_namespace_messages
 
 from db.init_db import engine, User, Message, Prompt, Model
 #engine = create_async_engine(db_url, echo=True, future=True)
@@ -75,7 +77,7 @@ async def select_user_chat_history(user_id):
         current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
         user_chat_id = int(current_chat_id.first()[0])
         result = await conn.execute(select(Message.author, Message.content, Message.summ_content).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.asc()))
-        return result.all()
+    return result.all()
 ##########################################################################################################################################################
 # Add user message
 async def add_message(user_id, author, content, summ_content):
@@ -89,6 +91,13 @@ async def add_message(user_id, author, content, summ_content):
                 summ_content = summ_content,
                 chat_id      = user_chat_id
             ))
+        message_id = await conn.execute(select(Message.id).where(
+                Message.user_id == user_id,
+                Message.chat_id == user_chat_id,
+                Message.content == content
+            ))
+        message_id_str = str(message_id.first()[0])
+    return message_id_str
 ##########################################################################################################################################################
 # Select last User question
 async def select_last_question(user_id):
@@ -112,6 +121,10 @@ async def delete_all_messages(user_id):
         current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
         user_chat_id = int(current_chat_id.first()[0])
         await conn.execute(Delete(Message).where(Message.user_id == user_id, Message.chat_id == user_chat_id))
+    # Delete all vectors in the specified namespace
+    namespace = str(user_id) + "_" + str(user_chat_id)
+    return namespace
+
 ##########################################################################################################################################################
 # Delete last two eser messages
 async def delete_last_two_messages(user_id):
