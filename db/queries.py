@@ -16,6 +16,13 @@ from db.init_db import engine, User, Message, Prompt, Model
 # # expire_on_commit - don't expire objects after transaction commit
 #async_session = async_sessionmaker(engine, expire_on_commit=False)
 
+
+# Disable SQLAlchemy logging
+# import logging
+# logging.basicConfig()
+# logging.getLogger('sqlalchemy').setLevel(logging.CRITICAL)
+# logging.getLogger('sqlalchemy.engine').addHandler(logging.NullHandler())
+
 ##########################################################################################################################################################
 # select prompt and model for user
 async def select_user_settings(user_id):
@@ -121,7 +128,7 @@ async def delete_all_messages(user_id):
         current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
         user_chat_id = int(current_chat_id.first()[0])
         await conn.execute(Delete(Message).where(Message.user_id == user_id, Message.chat_id == user_chat_id))
-    # Delete all vectors in the specified namespace
+    # Return namespace for deleting from RAG DB
     namespace = str(user_id) + "_" + str(user_chat_id)
     return namespace
 
@@ -129,12 +136,38 @@ async def delete_all_messages(user_id):
 # Delete last two eser messages
 async def delete_last_two_messages(user_id):
     async with engine.begin() as conn:
+        result = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
+        current_chat_id = result.scalar()
+        user_chat_id = int(current_chat_id)
+
+        result = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.desc()))
+        last_message = result.first()
+
+        deleted_message_1_id = last_message[0]
+        await conn.execute(Delete(Message).where(Message.id == last_message[0]))
+        print(f"\nDeleted message ID:\n{last_message[0]}\n")
+
+        result = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.desc()))
+        last_message = result.first()
+
+        deleted_message_2_id = last_message[0]
+        await conn.execute(Delete(Message).where(Message.id == last_message[0]))
+        print(f"\nDeleted message ID:\n{last_message[0]}\n")
+
+    # Return namespace for deleting from RAG DB
+    namespace = str(user_id) + "_" + str(user_chat_id)
+    # Return deleted messages ids
+    return namespace, str(deleted_message_1_id), str(deleted_message_2_id)
+
+##########################################################################################################################################################
+# Select last two User messages
+async def select_last_dialogues(user_id, depth):
+    async with engine.begin() as conn:
         current_chat_id = await conn.execute(select(User.chat_id).where(User.user_id == user_id))
         user_chat_id = int(current_chat_id.first()[0])
-        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.desc()))
-        await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
-        last_message = await conn.execute(select(Message.id).where(Message.user_id == user_id, Message.chat_id == user_chat_id).order_by(Message.id.desc()))
-        await conn.execute(Delete(Message).where(Message.id == last_message.first()[0]))
+        result_user = await conn.execute(select(Message.content).where(Message.user_id == user_id, Message.author == "user", Message.chat_id == user_chat_id).order_by(Message.id.desc()))
+        result_ai   = await conn.execute(select(Message.content).where(Message.user_id == user_id, Message.author == "ai",   Message.chat_id == user_chat_id).order_by(Message.id.desc()))
+    return result_user.all(), result_ai.all()
 
 ##########################################################################################################################################################
 # Select current initial prompt

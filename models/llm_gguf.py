@@ -6,7 +6,7 @@ def llm_answer_from_gguf(prompt_to_llm,
                                 max_new_tokens,
                                 max_context_window
                                 ):
-    debug_print(f"prompt TO {current_user_model[0]}", prompt_to_llm)
+#    debug_print(f"prompt TO {current_user_model[0]}", prompt_to_llm)
 
     # Set gpu_layers to the number of layers to offload to GPU. Set to 0 if no GPU acceleration is available on your system.
     llm = Llama(

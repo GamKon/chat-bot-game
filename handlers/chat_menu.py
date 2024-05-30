@@ -4,13 +4,13 @@ from aiogram.types import Message
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 
-from utility import pin_user_settings, get_number_emoji, get_emoji_number
+from utility import pin_user_settings, get_number_emoji, get_emoji_number, debug_print
 from keyboards.keyboards import get_confirm_kb, get_chat_kb, get_chat_chat_index_kb
 from classes import UIStates
 from handlers.main_menu import main_menu
 from handlers.ai import send_to_llm
 from db.queries import *
-from rag import delete_all_namespace_messages
+from rag import delete_all_namespace_messages, delete_vector_from_namespace
 
 router = Router()
 
@@ -28,7 +28,13 @@ async def chat_repeat_question(message: Message, state: FSMContext) -> None:
         last_question = await select_last_question(user_id = message.from_user.id)
         await message.answer("<i>Let me think again...</i>\n" + last_question[0], reply_markup=get_chat_kb(), parse_mode="HTML")
         # Delete last dialogue from DB
-        await delete_last_two_messages(user_id = message.from_user.id)
+        namespace, vector_1_id, vector_2_id = await delete_last_two_messages(user_id = message.from_user.id)
+        # Delete vectors from Pinecone RAG DB
+        delete_vector_from_namespace(namespace, vector_1_id)
+
+        # Vectors are saved under ai message id, try to delete vector with used message id just in case of future use
+        # delete_vector_from_namespace(namespace, vector_2_id)
+
         # Send last question to LLM
 # TODO make another def to call send_to_llm from anywhere
         await state.set_state( UIStates.confirm_send_transcript )
@@ -36,6 +42,7 @@ async def chat_repeat_question(message: Message, state: FSMContext) -> None:
 #        await message.answer("<i>Let me think again...</i>", reply_markup=get_chat_kb(), parse_mode="HTML")
     except (TypeError) as e:
         await message.answer("<i>Chat is empty </i>🤐", reply_markup=get_chat_kb(), parse_mode="HTML")
+        debug_print("Error repeating the question (empty history?)", e)
     await state.set_state( UIStates.chat )
 
 ##########################################################################################################################################################
@@ -44,10 +51,17 @@ async def chat_repeat_question(message: Message, state: FSMContext) -> None:
 @router.message(UIStates.menu, F.text.casefold() == "✏️ clear last")
 async def chat_clear_last_dialog(message: Message, state: FSMContext) -> None:
     try:
-        await delete_last_two_messages(user_id = message.from_user.id)
+        namespace, vector_1_id, vector_2_id = await delete_last_two_messages(user_id = message.from_user.id)
+        # Delete vectors from Pinecone RAG DB
+        delete_vector_from_namespace(namespace, vector_1_id)
+
+        # Vectors are saved under ai message id, try to delete vector with used message id just in case of future use
+        # delete_vector_from_namespace(namespace, vector_2_id)
+
         await message.answer("<i>Last dialogue is cleared</i>", reply_markup=get_chat_kb(), parse_mode="HTML")
     except (TypeError) as e:
         await message.answer("<i>Chat is empty </i>🤐", reply_markup=get_chat_kb(), parse_mode="HTML")
+        debug_print("Error clearing the last dialogue (empty history?)", e)
     await state.set_state( UIStates.chat )
 
 ##########################################################################################################################################################

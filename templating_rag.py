@@ -1,13 +1,14 @@
 from aiogram.types import Message
 from db.queries import *
 from utility import debug_print
-from rag import get_relevant_chat_history
+from rag import get_relevant_chat_history, get_num_vectors
 
 ###########################################################
 # Prepare prompt for LLM
-async def chat_template_rag(message_to_llm: str, namespace: str, message: Message, format_to: str = "Meta", top_k: int = 6, use_names: bool = True):
+async def chat_template_rag(message_to_llm: str, namespace: str, message: Message, format_to: str = "Meta", top_k: int = 1, use_names: bool = True, depth: int = 3, max_prompt_to_llm: int = 2048):
 
     prompt_to_llm = ""
+    #top_k = 0
     current_system_prompt = await select_system_prompt(message.from_user.id)
     #debug_print("current_system_prompt", current_system_prompt) # current_system_prompt[0]
 
@@ -20,7 +21,39 @@ async def chat_template_rag(message_to_llm: str, namespace: str, message: Messag
         user_role_name      = ""
         assistant_role_name = ""
 
-    messages_history = get_relevant_chat_history(message_to_llm, namespace, top_k)
+    ##########################################################################################################################################################
+    # Get last dialogues to add to RAG rezults to keep context of the last events
+    last_dialogues_user, last_dialogues_ai = await select_last_dialogues(user_id = message.from_user.id, depth = depth)
+    last_dialogues = []
+
+    # If there are not enought messages yet to get depth of dialogues
+    if len(last_dialogues_user) < depth:
+        depth = len(last_dialogues_user)
+    for i in range(depth):
+        last_dialogues.append(str(last_dialogues_user[i][0]) + " \n" + str(last_dialogues_ai[i][0]))
+#            debug_print(f"Dialogue {i}", str(last_dialogues_user[i][0]) + " \n" + str(last_dialogues_ai[i][0]))
+    # Reverse order to have last dialogues in time order
+    last_dialogues.reverse()
+#        debug_print("last_dialogues", last_dialogues)
+
+    # Add last ai message to rag request
+    if len(last_dialogues_ai) > 0:
+        message_to_rag = last_dialogues_ai[0][0] + "\n" + message_to_llm
+
+    ##########################################################################################################################################################
+    # Get relevant chat history from Pinecone
+    messages_history = get_relevant_chat_history(message_to_rag, namespace, top_k)
+    debug_messages_history = messages_history
+    ##########################################################################################################################################################
+    # Remove dialogues to have last dialogs added in order
+    for dialogue in last_dialogues:
+        if dialogue in messages_history:
+            messages_history.remove(dialogue)
+#                debug_print("Removed", dialogue)
+    # Append last dialogues to messages_history
+    for dialogue in last_dialogues:
+        messages_history.append(dialogue)
+#            debug_print("Appended", dialogue)
 
     rag_system_prompt = current_system_prompt[0] + " \nHere what happened earlier: \n"
     for message in messages_history:
@@ -39,8 +72,17 @@ async def chat_template_rag(message_to_llm: str, namespace: str, message: Messag
         prompt_to_llm = "<|start_header_id|>system<|end_header_id|>\n" + rag_system_prompt + "<|eot_id|>"
 
         prompt_to_llm += f"<|start_header_id|>{user_role_name}<|end_header_id|>\n{message_to_llm}<|eot_id|><|start_header_id|>{assistant_role_name}<|end_header_id|>\n"
-
-    return prompt_to_llm
+#        debug_print("prompt_to_llm", prompt_to_llm)
+    debug_print("len prompt_to_llm", len(prompt_to_llm))
+    debug_print("max_prompt_to_llm", max_prompt_to_llm)
+    debug_print("Total Vectors in DB", get_num_vectors(namespace))
+    if len(prompt_to_llm) > max_prompt_to_llm:
+        return ""
+    else:
+        # Show rag retrieved messages
+        for message in debug_messages_history:
+            debug_print("relevant chat history from Pinecone", message)
+        return prompt_to_llm
 
 '''
 Meta format:

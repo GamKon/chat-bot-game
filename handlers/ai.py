@@ -43,7 +43,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
         data = await state.update_data(is_thinking = False)
 
     current_user_model = await select_user_llm_model(message.from_user.id)
-    debug_print("current_user_model4", current_user_model[4])
+#    debug_print("current_user_model4", current_user_model[4])
     max_context_window = current_user_model[4]
 
     # Set maximum answer length max_new_tokens
@@ -77,20 +77,61 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
     ###########################################################
     # Prepare prompt for LLM
 
+    # Before using RAG. Just plain SELECT all messages form history
     # make messages list from DB in STRING format
     # Template whole string to send depending on format
 ###    prompt_to_llm = await chat_template(message_to_llm, message, format_to = current_user_model[2], use_names = current_user_model[3])
 
+    ###########################################################
     # RAG: make messages list from Pinecone DB in STRING format
     # Template whole string to send depending on format
-    # message_to_llm: str, namespace: str, message: Message, format_to: str = "Meta", top_k: int = 6, use_names
 
-    # TODO dynamically change top_k depending on the length of the message
-    top_k = 5 # how many messages to retrieve from Pinecone
+    # TODO find a way to count how many tokens in the string
+    max_prompt_to_llm = int((max_context_window - max_new_tokens)*4)
+    debug_print("max_prompt_to_llm", max_prompt_to_llm)
+
     current_chat = await select_user_chat_id(user_id = message.from_user.id)
     namespace = str(message.from_user.id)+"_"+str(current_chat[0])
 
-    prompt_to_llm = await chat_template_rag(message_to_llm, namespace, message, format_to = current_user_model[2], top_k = top_k, use_names = current_user_model[3])
+# TODO: remember optimal top_k for not to query all of them at every templating
+
+    # How many vectors are stored in namespace
+    try:
+        top_k = get_num_vectors(namespace)
+        debug_print(f"Total vectors in namespace {namespace}", top_k)
+        if top_k == 0: top_k = 1
+    except Exception as e:
+        debug_print("Error getting number of vectors", e)
+        await message.reply("Error getting number of vectors (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+        top_k = 1
+
+    # Set how many very last messages to add to the end of message_to_llm
+    depth = 3
+
+    # Get how many vectors (top_k) to retrieve from Pinecone to fit context window
+    data = await state.get_data()
+    if "top_k" in data:
+        stored_top_k = data["top_k"]
+        debug_print("Stored top_k", stored_top_k)
+        if stored_top_k < top_k and top_k > depth:
+            top_k = stored_top_k + depth
+    debug_print("Optimal Top_k", top_k)
+
+    try:
+        prompt_to_llm = await chat_template_rag(message_to_llm, namespace, message, format_to = current_user_model[2], use_names = current_user_model[3], max_prompt_to_llm = max_prompt_to_llm, top_k = top_k, depth = depth)
+    #    debug_print("Prompt to LLM FIRST TRY", prompt_to_llm)
+        while prompt_to_llm == "" and top_k > 1:
+            top_k -= 1
+            debug_print("Top_k reduced to", top_k)
+            prompt_to_llm = await chat_template_rag(message_to_llm, namespace, message, format_to = current_user_model[2], use_names = current_user_model[3], max_prompt_to_llm = max_prompt_to_llm, top_k = top_k, depth = depth)
+    except Exception as e:
+        debug_print("Error templating message from RAG", e)
+        await message.reply("Error templating message from RAG (\n" + html.quote(str(e)), reply_markup = get_chat_kb())
+        return
+
+    # Save top_k for next time to message.data
+    data = await state.update_data(top_k = top_k)
+    debug_print("Save top_k", top_k)
 
     ###########################################################
     # Stop accepting messages while LLM is thinking
@@ -127,6 +168,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
                 # Set is_thinking to False
                 data = await state.update_data(is_thinking = False)
                 return
+#   sleep doesn't work here ???
             await asyncio.sleep(3)
         except (TypeError, NameError, Exception) as e:
             await emoji_message.delete()
@@ -196,7 +238,7 @@ async def send_to_llm(message: Message, state: FSMContext, message_to_llm: str =
             picture_description = await summarize_text( text    = llm_answer,
                                                 state   = state,
                                                 model   = "llama-3-instruct-8b-simpo-q4_k_m.gguf",
-                                                max_new_tokens = 77,
+                                                max_new_tokens = 128,
                                                 draw    = True)
             await illustrate(message, state, picture_description, current_user_system_prompt[4].lower())
         except Exception as e:
@@ -247,7 +289,7 @@ async def summarize_text(text: str, state: FSMContext, model: str = "mistral-7b-
 
     loop = asyncio.get_event_loop()
     if draw:
-        string_to_summarize  = "Engineer very short prompt to illustrate what is happening here: '" + text + "' One sentence prompt to draw: "
+        string_to_summarize  = "This is what happening: '" + text + "' Illustrate: "
                                 # Focus on who, where then what is happening.
     else:
         string_to_summarize  = "Summarize this: '" + text + "'. Very short summary:"
@@ -276,6 +318,10 @@ async def illustrate(message: Message, state: FSMContext, picture_description: s
     num_inference_steps = 50
     picture_description = game_type.replace("game", "") + " " + str(picture_description.split("\n")[0]).strip()
 
+    if "Illustration" in picture_description:
+        picture_description = picture_description.split("Illustration")[1].strip()
+        debug_print("Splitted by 'Illustration:'", picture_description)
+
     # Show picture description
     #debug_print("Picture description", picture_description)
     await message.answer(picture_description, reply_markup = get_chat_kb())
@@ -283,14 +329,14 @@ async def illustrate(message: Message, state: FSMContext, picture_description: s
     loop = asyncio.get_event_loop()
 
     # Create a dictionary to map function names to functions
-    function_map = {"playground_v2_5_1024px_aesthetic": playground_v2_5_1024px_aesthetic}
+    function_map = {"OpenDalleV1_1": OpenDalleV1_1}
 
     #     "ProteusV0_2": ProteusV0_2,
     #     "OpenDalleV1_1": OpenDalleV1_1,
     #     "playground_v2_5_1024px_aesthetic": playground_v2_5_1024px_aesthetic
     # }
     #txt_to_img_models = ["ProteusV0_2", "OpenDalleV1_1", "playground_v2_5_1024px_aesthetic"]
-    txt_to_img_models = ["playground_v2_5_1024px_aesthetic"]
+    txt_to_img_models = ["OpenDalleV1_1"]
     for model_name in txt_to_img_models:
         try:
             emoji_message = await message.answer("🎨", reply_markup = ReplyKeyboardRemove(remove_keyboard = True))
