@@ -143,7 +143,7 @@ async def chat_template(message_to_llm: str, message: Message, format_to: str = 
     else:
         # format_to == "Mistral":
         # make messages list from DB in STRING format
-        prompt_to_llm = "<s>[INST] <<SYS>>\n" + current_system_prompt[0] + "\n<</SYS>>\n"
+        prompt_to_llm = "[INST] <<SYS>>\n" + current_system_prompt[0] + "\n<</SYS>>\n"
         for prompt in messages_history:
             # Check for message's Author form Messages table (user, ai)
             if prompt[0].lower() == "user":

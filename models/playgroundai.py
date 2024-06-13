@@ -9,11 +9,12 @@ def playground_v2_5_1024px_aesthetic(prompt: str, file_path, n_steps: int):
 
     pipe = DiffusionPipeline.from_pretrained(
         # "playgroundai/playground-v2-1024px-aesthetic",
-        "playgroundai/playground-v2.5-1024px-aesthetic",
+        # "playgroundai/playground-v2.5-1024px-aesthetic",
+        "stabilityai/stable-diffusion-3-medium-diffusers",
         torch_dtype=torch.float16,
 #        use_safetensors=True,
 #        add_watermarker=False,
-        variant="fp16"
+#        variant="fp16",
     )
     pipe.to("cuda")
 
@@ -34,3 +35,5 @@ def playground_v2_5_1024px_aesthetic(prompt: str, file_path, n_steps: int):
     full_path   = file_path+"/"+image_name
     image.save(full_path)
     return full_path
+
+#stabilityai/stable-diffusion-3-medium

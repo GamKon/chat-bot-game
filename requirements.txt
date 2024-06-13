@@ -27,3 +27,6 @@ sentence-transformers
 # emoji
 bitsandbytes
 # scipy
+
+# langchain
+tiktoken
