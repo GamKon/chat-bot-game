@@ -40,7 +40,7 @@ RUN pip install --upgrade "git+https://github.com/huggingface/transformers" opti
 ##RUN pip install flash-attn --no-build-isolation
 
 # llama.cpp
-RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=all" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
+RUN CUDACXX=/usr/local/cuda-12/bin/nvcc CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=86" FORCE_CMAKE=1 pip install llama-cpp-python --no-cache-dir --force-reinstall --upgrade
 #  nvcc --list-gpu-arch
 # -DCMAKE_CUDA_ARCHITECTURES=!!native/all/86
 

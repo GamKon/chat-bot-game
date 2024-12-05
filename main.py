@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any, Awaitable, Callable, Dict
-#import logging
+import logging
 from aiogram import Dispatcher, Router, types
 
 from utility import debug_print
@@ -49,10 +49,38 @@ class ThrottleWhileThinking(BaseMiddleware):
 
 router = Router()
 
+def configure_sqlalchemy_logging():
+    # Disable SQLAlchemy logging
+    logging.getLogger('sqlalchemy').setLevel(logging.CRITICAL)
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.CRITICAL)
+
+    # Ensure no handlers are attached to these loggers
+    for handler in logging.getLogger('sqlalchemy').handlers:
+        logging.getLogger('sqlalchemy').removeHandler(handler)
+
+    for handler in logging.getLogger('sqlalchemy.engine').handlers:
+        logging.getLogger('sqlalchemy.engine').removeHandler(handler)
+
+    # Add NullHandler to prevent propagation
+    logging.getLogger('sqlalchemy').addHandler(logging.NullHandler())
+    logging.getLogger('sqlalchemy.engine').addHandler(logging.NullHandler())
+
+    # Disable propagation to prevent messages from bubbling up to the root logger
+    logging.getLogger('sqlalchemy').propagate = False
+    logging.getLogger('sqlalchemy.engine').propagate = False
+
+
+
+
 ##########################################################################################################################################################
 # Main
 ##########################################################################################################################################################
 async def main():
+    # Call the configuration function
+    configure_sqlalchemy_logging()
+
+
+
 #    bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
     dp  = Dispatcher()
     dp.message.middleware(ThrottleWhileThinking())
@@ -66,4 +94,7 @@ async def main():
 ##########################################################################################################################################################
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    # logging.basicConfig()
+    # logging.getLogger('sqlalchemy').setLevel(logging.CRITICAL)
+    # logging.getLogger('sqlalchemy.engine').addHandler(logging.NullHandler())
     asyncio.run(main())

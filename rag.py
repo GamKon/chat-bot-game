@@ -27,17 +27,15 @@ index = pc.Index("chat-bot-history")
 # Choose an Embedding Model
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
+
+##########################################################################################################################################################
 # Convert to embeddings
 def get_embedding(message):
     return model.encode(message).tolist()
 
-# def get_text(embedding):
-#     return model.decode(embedding).tolist()
-
 # Store the chat history in Pinecone
 def store_vector_chat_message(chat_history, vector_id, namespace):
     embeddings = [get_embedding(message) for message in chat_history]
-#    debug_print("Embeddings: ", embeddings)
     for i in range(len(chat_history)):
         index.upsert(
             vectors=[
@@ -59,8 +57,13 @@ def store_vector_chat_message(chat_history, vector_id, namespace):
         )
 
 
+##########################################################################################################################################################
 # Retrieve closest messages in chat history from Pinecone
-def get_relevant_chat_history(message, namespace, top_k=6):
+def get_relevant_chat_history(message, namespace, top_k):
+
+    # To fix error: Invalid value for `top_k`, must be a value greater than or equal to `1`
+    if top_k == 0: top_k = 1
+
     query_embedding = get_embedding(message)
     results = index.query(
                 namespace=namespace,
@@ -70,22 +73,53 @@ def get_relevant_chat_history(message, namespace, top_k=6):
                 # include_values=True
     )
 
-#    debug_print(f"RAG retrieved {top_k} closest messages", results)
-
-    #closest_messages = [match["metadata"]["message"] for match in results.matches]
-
     # Retrieve messages and vector_ids from results
     closest_messages = [(match["metadata"]["message"], int(match["id"])) for match in results.matches]
+
     # Sort messages by vector_id
     closest_messages.sort(key=lambda x: x[1])
+
     # Extract sorted messages
     sorted_messages = [message for message, _ in closest_messages]
 
-    for message in sorted_messages:
-        debug_print("RAG closest message", message)
+#    for message in sorted_messages:
+#        debug_print("RAG closest message", message)
 
     return sorted_messages
 
+
+##########################################################################################################################################################
 # Delete all messages in namespace
 def delete_all_namespace_messages(namespace):
     index.delete(delete_all=True, namespace=namespace)
+
+
+##########################################################################################################################################################
+# Extract the number of vectors in the specified namespace
+def get_num_vectors(namespace):
+    # Get the index statistics
+    index_stats = index.describe_index_stats()
+    namespace_stats = index_stats.get('namespaces', {}).get(namespace, {})
+    num_vectors = namespace_stats.get('vector_count', 0)
+    return num_vectors
+
+
+##########################################################################################################################################################
+# Extract vector metadata message by vector ID
+def get_vector_metadata(namespace, vector_id):
+    # Get the vector metadata
+    response = index.fetch(ids=[vector_id], namespace=namespace)
+    # Check if the vector is found and has metadata
+    if vector_id in response.vectors:
+        vector_metadata = response.vectors[vector_id].metadata
+        return vector_metadata.get("message", None)
+    else:
+        return None
+
+
+##########################################################################################################################################################
+# Delete a vector from the specified namespace
+def delete_vector_from_namespace(namespace, vector_id):
+    vector_message = get_vector_metadata(namespace, vector_id)
+    index.delete(ids=[vector_id], namespace=namespace)
+    debug_print(f"Deleted vector {vector_id} from namespace {namespace}", vector_message)

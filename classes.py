@@ -2,9 +2,12 @@ from os import getenv
 from aiogram.fsm.state import State, StatesGroup
 from aiogram import Bot
 from aiogram.enums import ParseMode
+from aiogram.client.bot import DefaultBotProperties
 
 TOKEN = getenv('TELEGRAM_BOT_TOKEN')
-bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+#default=DefaultBotProperties(parse_mode=<ParseMode.HTML: 'HTML'>)
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+#bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
 
 ##########################################################################################################################################################
 # Classes

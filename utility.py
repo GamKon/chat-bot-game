@@ -3,6 +3,15 @@ from aiogram import html
 from classes import bot
 from db.queries import select_user_settings
 from aiogram.enums import ParseMode
+import tiktoken
+
+##########################################################################################################################################################
+# Count number of tokens in a text string
+def num_tokens_from_string(string: str, encoding_name: str) -> int:
+    """Returns the number of tokens in a text string"""
+    encoding = tiktoken.get_encoding(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
 
 ##########################################################################################################################################################
 # Pin User settings
